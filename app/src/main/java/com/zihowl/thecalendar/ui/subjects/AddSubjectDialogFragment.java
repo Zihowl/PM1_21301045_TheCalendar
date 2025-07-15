@@ -26,6 +26,7 @@ import com.zihowl.thecalendar.data.model.Subject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -95,7 +96,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
     }
 
     private void addScheduleBlock(@Nullable String day, @Nullable String startTime24h, @Nullable String endTime24h) {
-        LayoutInflater inflater = LayoutInflater.from(getContext());
+        LayoutInflater inflater = getLayoutInflater();
         View blockView = inflater.inflate(R.layout.item_schedule_block, containerScheduleBlocks, false);
 
         Spinner spinnerDay = blockView.findViewById(R.id.spinnerDay);
@@ -107,7 +108,8 @@ public class AddSubjectDialogFragment extends DialogFragment {
         textViewEndTime.setOnClickListener(v -> showTimePicker(textViewEndTime));
         buttonRemoveBlock.setOnClickListener(v -> containerScheduleBlocks.removeView(blockView));
 
-        if (day != null && getResources().getStringArray(R.array.week_days) != null) {
+        if (day != null) {
+            getResources().getStringArray(R.array.week_days);
             String[] daysArray = getResources().getStringArray(R.array.week_days);
             for (int i = 0; i < daysArray.length; i++) {
                 if (daysArray[i].equalsIgnoreCase(day)) {
@@ -117,14 +119,13 @@ public class AddSubjectDialogFragment extends DialogFragment {
             }
         }
 
-        // CAMBIO: Formatear la hora para mostrarla en 12h y guardar la de 24h en el tag
         if (startTime24h != null) {
             textViewStartTime.setText(formatTo12Hour(startTime24h));
-            textViewStartTime.setTag(startTime24h); // Guardamos el formato 24h
+            textViewStartTime.setTag(startTime24h);
         }
         if (endTime24h != null) {
             textViewEndTime.setText(formatTo12Hour(endTime24h));
-            textViewEndTime.setTag(endTime24h); // Guardamos el formato 24h
+            textViewEndTime.setTag(endTime24h);
         }
 
         containerScheduleBlocks.addView(blockView);
@@ -136,7 +137,6 @@ public class AddSubjectDialogFragment extends DialogFragment {
         int hour = Integer.parseInt(timeParts[0]);
         int minute = Integer.parseInt(timeParts[1]);
 
-        // CAMBIO: Usar formato de 12 horas para el diálogo
         MaterialTimePicker picker = new MaterialTimePicker.Builder()
                 .setTimeFormat(TimeFormat.CLOCK_12H)
                 .setHour(hour)
@@ -148,7 +148,6 @@ public class AddSubjectDialogFragment extends DialogFragment {
             int selectedHour = picker.getHour();
             int selectedMinute = picker.getMinute();
 
-            // NUEVO: Guardar en formato 24h, mostrar en 12h.
             String time24h = String.format(Locale.getDefault(), "%02d:%02d", selectedHour, selectedMinute);
             timeTextView.setText(formatTo12Hour(time24h));
             timeTextView.setTag(time24h);
@@ -165,10 +164,10 @@ public class AddSubjectDialogFragment extends DialogFragment {
         }
 
         String scheduleString = buildScheduleString();
-        // Si buildScheduleString devuelve null, significa que hubo un error de validación.
         if (scheduleString == null) return;
 
         if (isEditing) {
+            assert getArguments() != null;
             int position = getArguments().getInt(KEY_POSITION);
             viewModel.updateSubject(position, name, scheduleString);
         } else {
@@ -182,24 +181,38 @@ public class AddSubjectDialogFragment extends DialogFragment {
     @Nullable
     private String buildScheduleString() {
         StringBuilder scheduleBuilder = new StringBuilder();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
         for (int i = 0; i < containerScheduleBlocks.getChildCount(); i++) {
             View blockView = containerScheduleBlocks.getChildAt(i);
             Spinner spinnerDay = blockView.findViewById(R.id.spinnerDay);
             TextView textViewStartTime = blockView.findViewById(R.id.textViewStartTime);
             TextView textViewEndTime = blockView.findViewById(R.id.textViewEndTime);
 
-            // CAMBIO: Obtener la hora del tag (formato 24h) en lugar del texto
-            String startTime = textViewStartTime.getTag() instanceof String ? (String) textViewStartTime.getTag() : null;
-            String endTime = textViewEndTime.getTag() instanceof String ? (String) textViewEndTime.getTag() : null;
+            String startTimeStr = textViewStartTime.getTag() instanceof String ? (String) textViewStartTime.getTag() : null;
+            String endTimeStr = textViewEndTime.getTag() instanceof String ? (String) textViewEndTime.getTag() : null;
 
-            // Validar que se haya seleccionado hora de inicio y fin
-            if (startTime == null || endTime == null) {
-                Toast.makeText(getContext(), "Por favor, selecciona una hora de inicio y fin para todos los bloques.", Toast.LENGTH_SHORT).show();
-                return null; // Devuelve null para indicar error
+            if (startTimeStr == null || endTimeStr == null) {
+                Toast.makeText(getContext(), "Selecciona hora de inicio y fin para todos los bloques.", Toast.LENGTH_SHORT).show();
+                return null;
+            }
+
+            // --- NUEVO: Validación de horario invertido ---
+            try {
+                Date startTime = sdf.parse(startTimeStr);
+                Date endTime = sdf.parse(endTimeStr);
+                if (startTime != null && endTime != null && startTime.after(endTime)) {
+                    Toast.makeText(getContext(), "La hora de fin no puede ser anterior a la hora de inicio.", Toast.LENGTH_LONG).show();
+                    return null;
+                }
+            } catch (ParseException e) {
+                // Esto no debería pasar si el formato es correcto
+                Toast.makeText(getContext(), "Error en el formato de hora.", Toast.LENGTH_SHORT).show();
+                return null;
             }
 
             String day = spinnerDay.getSelectedItem().toString();
-            scheduleBuilder.append(day).append(" ").append(startTime).append(" - ").append(endTime); // ✅ CON ESPACIOS
+            scheduleBuilder.append(day).append(" ").append(startTimeStr).append(" - ").append(endTimeStr);
             if (i < containerScheduleBlocks.getChildCount() - 1) {
                 scheduleBuilder.append("\n");
             }
@@ -213,27 +226,16 @@ public class AddSubjectDialogFragment extends DialogFragment {
         String[] lines = schedule.split("\n");
         for (String line : lines) {
             try {
-                // CAMBIO: Dividir por " " para separar el día del resto.
-                // Ejemplo: "Lunes 07:00 - 08:40" -> parts[0]="Lunes", parts[1]="07:00", parts[2]="-", parts[3]="08:40"
                 String[] parts = line.split(" ");
                 String day = parts[0];
-
-                // Unir el resto en caso de que el nombre del día tuviera espacios (no aplica aquí, pero es más robusto)
-                // String schedulePart = line.substring(day.length()).trim(); // "07:00 - 08:40"
-
-                // CORRECCIÓN CLAVE: Dividir por " - " (con espacios) para obtener las horas.
                 String[] times = line.substring(day.length()).trim().split(" - ");
-                String startTime = times[0];
-                String endTime = times[1];
-
-                addScheduleBlock(day, startTime, endTime);
+                addScheduleBlock(day, times[0], times[1]);
             } catch (Exception e) {
-                // Ignorar líneas con formato incorrecto, por si acaso.
+                // Ignorar líneas con formato incorrecto
             }
         }
     }
 
-    // NUEVO: Helper para formatear la hora de 24h a 12h con AM/PM
     private String formatTo12Hour(String time24h) {
         if (time24h == null || time24h.isEmpty()) return "";
         try {
@@ -241,7 +243,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
             SimpleDateFormat sdf12 = new SimpleDateFormat("hh:mm a", Locale.getDefault());
             return sdf12.format(Objects.requireNonNull(sdf24.parse(time24h)));
         } catch (ParseException | NullPointerException e) {
-            return time24h; // Devuelve el original si falla
+            return time24h;
         }
     }
 }

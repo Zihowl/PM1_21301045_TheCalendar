@@ -15,11 +15,11 @@
         <item>Jueves</item>
         <item>Viernes</item>
         <item>Sábado</item>
+        <item>Domingo</item>
     </string-array>
 
-        <string name="subject_tasks_pending">Tareas pendientes: %d</string>
-        <string name="subject_notes_count">Notas: %d</string>
+    <string name="subject_tasks_pending">Tareas pendientes: %d</string>
+    <string name="subject_notes_count">Notas: %d</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
