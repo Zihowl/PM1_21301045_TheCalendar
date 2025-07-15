@@ -5,11 +5,11 @@
     android:layout_height="match_parent"
     tools:context=".ui.notes.NotesFragment">
 
-    <TextView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewNotes"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Aquí van las Notas"
-        android:textSize="20sp" />
+        android:padding="8dp"
+        tools:listitem="@layout/item_note" />
 
 </FrameLayout>

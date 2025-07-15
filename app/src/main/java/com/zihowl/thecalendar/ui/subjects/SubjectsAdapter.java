@@ -1,5 +1,6 @@
 package com.zihowl.thecalendar.ui.subjects;
 
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.view.LayoutInflater;
@@ -58,15 +59,21 @@ public class SubjectsAdapter extends ListAdapter<Subject, SubjectsAdapter.Subjec
         return new SubjectViewHolder(view);
     }
 
+    // Dentro de SubjectsAdapter.java
+
     @Override
     public void onBindViewHolder(@NonNull SubjectViewHolder holder, int position) {
         Subject currentSubject = getItem(position);
         holder.bind(currentSubject, clickListener, longClickListener);
 
+        androidx.cardview.widget.CardView cardView = (androidx.cardview.widget.CardView) holder.itemView;
+
         if (selectedItems.contains(currentSubject)) {
-            holder.itemView.setBackgroundColor(Color.LTGRAY);
+            // Usamos un color gris claro para el elemento seleccionado
+            cardView.setCardBackgroundColor(Color.LTGRAY);
         } else {
-            holder.itemView.setBackgroundColor(Color.TRANSPARENT);
+            // Para los no seleccionados, restauramos el color original guardado
+            cardView.setCardBackgroundColor(holder.defaultCardBackgroundColor);
         }
     }
 
@@ -85,6 +92,7 @@ public class SubjectsAdapter extends ListAdapter<Subject, SubjectsAdapter.Subjec
 
     public static class SubjectViewHolder extends RecyclerView.ViewHolder {
         public TextView name, schedule, tasksPending, notesCount;
+        public final ColorStateList defaultCardBackgroundColor;
 
         public SubjectViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -92,6 +100,9 @@ public class SubjectsAdapter extends ListAdapter<Subject, SubjectsAdapter.Subjec
             schedule = itemView.findViewById(R.id.textViewSubjectSchedule);
             tasksPending = itemView.findViewById(R.id.textViewTasksPending);
             notesCount = itemView.findViewById(R.id.textViewNotesCount);
+
+            // Guardamos el color original de la tarjeta al crear el ViewHolder
+            defaultCardBackgroundColor = ((androidx.cardview.widget.CardView) itemView).getCardBackgroundColor(); // <- NUEVA LÍNEA
         }
 
         public void bind(final Subject subject, final OnItemClickListener clickListener, final OnItemLongClickListener longClickListener) {

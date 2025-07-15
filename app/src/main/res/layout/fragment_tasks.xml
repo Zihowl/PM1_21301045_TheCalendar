@@ -5,12 +5,11 @@
     android:layout_height="match_parent"
     tools:context=".ui.tasks.TasksFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewTasks"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Aquí van las Tareas"
-        android:textSize="20sp" /> />
+        android:padding="8dp"
+        tools:listitem="@layout/item_task" />
 
 </FrameLayout>
