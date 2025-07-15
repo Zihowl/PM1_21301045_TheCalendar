@@ -199,7 +199,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
             }
 
             String day = spinnerDay.getSelectedItem().toString();
-            scheduleBuilder.append(day).append(" ").append(startTime).append("-").append(endTime);
+            scheduleBuilder.append(day).append(" ").append(startTime).append(" - ").append(endTime); // ✅ CON ESPACIOS
             if (i < containerScheduleBlocks.getChildCount() - 1) {
                 scheduleBuilder.append("\n");
             }

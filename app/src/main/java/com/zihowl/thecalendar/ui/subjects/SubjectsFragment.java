@@ -113,8 +113,6 @@ public class SubjectsFragment extends Fragment {
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-                // Se infla el menú aquí.
-                menuInflater.inflate(R.menu.main_menu, menu);
             }
 
             @Override
