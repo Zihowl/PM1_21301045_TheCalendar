@@ -5,4 +5,12 @@
 
     <group android:checkableBehavior="single">
     </group>
+
+    <group android:id="@+id/session_group"
+        android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="@string/action_logout" />
+    </group>
 </menu>

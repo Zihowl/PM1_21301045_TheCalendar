@@ -7,16 +7,15 @@
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
-
-    <string-array name="week_days">
-        <item>Lunes</item>
-        <item>Martes</item>
-        <item>Miércoles</item>
-        <item>Jueves</item>
-        <item>Viernes</item>
-        <item>Sábado</item>
-        <item>Domingo</item>
-    </string-array>
+    <string name="action_logout">Cerrar sesión</string> <string-array name="week_days">
+    <item>Lunes</item>
+    <item>Martes</item>
+    <item>Miércoles</item>
+    <item>Jueves</item>
+    <item>Viernes</item>
+    <item>Sábado</item>
+    <item>Domingo</item>
+</string-array>
 
     <string name="subject_tasks_pending">Tareas pendientes: %d</string>
     <string name="subject_notes_count">Notas: %d</string>
@@ -37,4 +36,7 @@
     <string name="label_schedule">Horario</string>
     <string name="action_add_schedule_block">+ Añadir bloque de horario</string>
 
+    <string name="dialog_title_new_task">Nueva Tarea</string>
+    <string name="hint_task_title">Título de la tarea</string>
+    <string name="hint_task_description">Descripción (opcional)</string>
 </resources>

@@ -7,4 +7,5 @@
     <color name="purple_500">#6200EE</color>
     <color name="purple_700">#5300A0</color>
     <color name="lightgray">#A1A1A1</color>
+    <color name="task_completed_background">#F0F0F0</color>
 </resources>

@@ -1,5 +1,6 @@
 package com.zihowl.thecalendar.ui.main;
 
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -18,8 +19,10 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.ui.auth.LoginActivity;
 import com.zihowl.thecalendar.ui.notes.AddNoteDialogFragment;
 import com.zihowl.thecalendar.ui.subjects.AddSubjectDialogFragment;
+import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -87,7 +90,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 invalidateOptionsMenu();
             }
         });
-        viewPager.setCurrentItem(3);
+        viewPager.setCurrentItem(0); // Iniciar en la pestaña de Tareas
+    }
+
+    public boolean isCurrentTab(int tabIndex) {
+        return viewPager.getCurrentItem() == tabIndex;
     }
 
     @Override
@@ -101,17 +108,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (item.getItemId() == R.id.action_add) {
             int currentTab = viewPager.getCurrentItem();
             switch (currentTab) {
-                case 0 -> Toast.makeText(this, "Agregar nueva Tarea...", Toast.LENGTH_SHORT).show();
-                case 1 -> {
-                    AddNoteDialogFragment dialog = new AddNoteDialogFragment();
-                    dialog.show(getSupportFragmentManager(), "AddNoteDialog");
-                }
-                case 3 -> {
-                    AddSubjectDialogFragment dialog = new AddSubjectDialogFragment();
-                    dialog.show(getSupportFragmentManager(), "AddSubjectDialog");
-                }
+                case 0:
+                    AddTaskDialogFragment.newInstance().show(getSupportFragmentManager(), "AddTaskDialog");
+                    return true;
+                case 1:
+                    new AddNoteDialogFragment().show(getSupportFragmentManager(), "AddNoteDialog");
+                    return true;
+                case 3:
+                    new AddSubjectDialogFragment().show(getSupportFragmentManager(), "AddSubjectDialog");
+                    return true;
             }
-            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -119,9 +125,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.nav_home) {
-            Toast.makeText(this, "Ya estás en Inicio", Toast.LENGTH_SHORT).show();
+
+        if (id == R.id.nav_logout) {
+            // Crear un Intent para volver a la pantalla de Login
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            // Añadir flags para limpiar la pila de actividades
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            // Finalizar esta actividad para que el usuario no pueda volver a ella
+            finish();
+            return true;
         }
+
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
