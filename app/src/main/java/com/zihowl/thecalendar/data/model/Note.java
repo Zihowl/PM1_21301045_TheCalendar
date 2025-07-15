@@ -1,9 +1,9 @@
 package com.zihowl.thecalendar.data.model;
 
 public class Note {
-    private final String title;
-    private final String content;
-    private final String subjectName;
+    private String title;
+    private String content;
+    private String subjectName;
 
     public Note(String title, String content, String subjectName) {
         this.title = title;
@@ -22,5 +22,18 @@ public class Note {
 
     public String getSubjectName() {
         return subjectName;
+    }
+
+    // Setters
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public void setSubjectName(String subjectName) {
+        this.subjectName = subjectName;
     }
 }

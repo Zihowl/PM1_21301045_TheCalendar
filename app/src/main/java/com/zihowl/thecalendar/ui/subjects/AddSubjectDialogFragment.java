@@ -41,6 +41,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
     private LinearLayout containerScheduleBlocks;
 
     // --- Métodos de Instancia ---
+    @SuppressWarnings("unused") // Suprime el warning de método no usado
     public static AddSubjectDialogFragment newInstance() {
         return new AddSubjectDialogFragment();
     }
@@ -74,7 +75,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
         buttonAddBlock.setOnClickListener(v -> addScheduleBlock(null, null, null));
 
         boolean isEditing = getArguments() != null;
-        String dialogTitle = isEditing ? "Editar Materia" : "Añadir Materia";
+        String dialogTitle = isEditing ? "Editar Materia" : "Nueva Materia";
 
         if (isEditing) {
             editTextName.setText(getArguments().getString(KEY_SUBJECT_NAME));

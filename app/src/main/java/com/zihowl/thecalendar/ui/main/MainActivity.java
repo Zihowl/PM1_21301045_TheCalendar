@@ -18,6 +18,7 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.ui.notes.AddNoteDialogFragment;
 import com.zihowl.thecalendar.ui.subjects.AddSubjectDialogFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -57,14 +58,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         TabLayout tabLayout = findViewById(R.id.tabLayout);
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            String title;
-            switch (position) {
-                case 0: title = "Tareas"; break;
-                case 1: title = "Notas"; break;
-                case 2: title = "Horario"; break;
-                case 3: title = "Materias"; break;
-                default: title = ""; break;
-            }
+            String title = switch (position) {
+                case 0 -> "Tareas";
+                case 1 -> "Notas";
+                case 2 -> "Horario";
+                case 3 -> "Materias";
+                default -> "";
+            };
             SpannableString boldTitle = new SpannableString(title);
             boldTitle.setSpan(new StyleSpan(Typeface.BOLD), 0, boldTitle.length(), SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
             tab.setText(boldTitle);
@@ -74,14 +74,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                String newTitle;
-                switch (position) {
-                    case 0: newTitle = "Tareas"; break;
-                    case 1: newTitle = "Notas"; break;
-                    case 2: newTitle = "Horario"; break;
-                    case 3: newTitle = "Materias"; break;
-                    default: newTitle = getString(R.string.app_name); break;
-                }
+                String newTitle = switch (position) {
+                    case 0 -> "Tareas";
+                    case 1 -> "Notas";
+                    case 2 -> "Horario";
+                    case 3 -> "Materias";
+                    default -> getString(R.string.app_name);
+                };
                 if (getSupportActionBar() != null) {
                     getSupportActionBar().setTitle(newTitle);
                 }
@@ -102,29 +101,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (item.getItemId() == R.id.action_add) {
             int currentTab = viewPager.getCurrentItem();
             switch (currentTab) {
-                case 0:
-                    Toast.makeText(this, "Agregar nueva Tarea...", Toast.LENGTH_SHORT).show();
-                    break;
-                case 1:
-                    Toast.makeText(this, "Agregar nueva Nota...", Toast.LENGTH_SHORT).show();
-                    break;
-                case 3:
+                case 0 -> Toast.makeText(this, "Agregar nueva Tarea...", Toast.LENGTH_SHORT).show();
+                case 1 -> {
+                    AddNoteDialogFragment dialog = new AddNoteDialogFragment();
+                    dialog.show(getSupportFragmentManager(), "AddNoteDialog");
+                }
+                case 3 -> {
                     AddSubjectDialogFragment dialog = new AddSubjectDialogFragment();
                     dialog.show(getSupportFragmentManager(), "AddSubjectDialog");
-                    break;
+                }
             }
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
     }
 
     @Override

@@ -3,31 +3,27 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Nueva Materia"
-        android:textAppearance="?attr/textAppearanceHeadline6" />
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="24dp">
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp">
+        android:layout_height="wrap_content">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editTextSubjectName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nombre de la materia" />
+            android:hint="@string/hint_subject_name" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:text="Horario"
+        android:text="@string/label_schedule"
         android:textAppearance="?attr/textAppearanceTitleMedium" />
 
     <ScrollView
@@ -46,7 +42,7 @@
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="+ Añadir bloque de horario"
+        android:text="@string/action_add_schedule_block"
         android:layout_marginTop="8dp"/>
 
 </LinearLayout>

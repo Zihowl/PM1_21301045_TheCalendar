@@ -20,6 +20,21 @@
 
     <string name="subject_tasks_pending">Tareas pendientes: %d</string>
     <string name="subject_notes_count">Notas: %d</string>
-
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="dialog_title_new_note">Nueva Nota</string>
+    <string name="dialog_title_edit_note">Editar Nota</string>
+    <string name="hint_note_title">Título de la nota</string>
+    <string name="hint_note_content">Contenido</string>
+    <string name="label_subject_optional">Materia (Opcional)</string>
+
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="none">Ninguna</string>
+    <string name="error_title_empty">El título no puede estar vacío</string>
+
+    <string name="hint_subject_name">Nombre de la materia</string>
+    <string name="label_schedule">Horario</string>
+    <string name="action_add_schedule_block">+ Añadir bloque de horario</string>
+
 </resources>
