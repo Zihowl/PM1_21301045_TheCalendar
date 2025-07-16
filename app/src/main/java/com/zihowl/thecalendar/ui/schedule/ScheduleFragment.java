@@ -70,15 +70,6 @@ public class ScheduleFragment extends Fragment {
     private static final int START_HOUR = 0;
     private static final int END_HOUR = 24;
 
-    private final Map<String, Integer> subjectColors = new HashMap<>();
-    private int colorIndex = 0;
-    private final int[] eventColors = {
-            Color.parseColor("#EF5350"), Color.parseColor("#AB47BC"),
-            Color.parseColor("#42A5F5"), Color.parseColor("#26A69A"),
-            Color.parseColor("#FFEE58"), Color.parseColor("#FFA726"),
-            Color.parseColor("#78909C"), Color.parseColor("#EC407A")
-    };
-
     private List<String> weekDays;
     private String selectedDay;
 
@@ -266,19 +257,35 @@ public class ScheduleFragment extends Fragment {
 
 
     private void drawEventView(Event event) {
+        // Inflamos nuestro nuevo diseño de CardView
+        View eventView = LayoutInflater.from(getContext()).inflate(R.layout.item_schedule_event, scheduleContainer, false);
+        TextView eventTextView = eventView.findViewById(R.id.event_text);
+
+        // Calculamos la altura y el margen superior
         float height = ((event.endMinutes - event.startMinutes) / 60f) * HOUR_HEIGHT_DP;
         float topMargin = (event.startMinutes / 60f) * HOUR_HEIGHT_DP;
 
+        // Calculamos el ancho y el margen izquierdo para manejar superposiciones
         int colWidth = DAY_WIDTH_DP / event.totalColumns;
         int leftMargin = event.column * dpToPx(colWidth);
 
-        TextView eventView = createEventView(event.subject, event.startMinutes, event.endMinutes);
+        // Configuramos el texto del evento
+        SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+        Calendar startCal = Calendar.getInstance();
+        startCal.set(Calendar.HOUR_OF_DAY, (int) (event.startMinutes / 60));
+        startCal.set(Calendar.MINUTE, (int) (event.startMinutes % 60));
+        Calendar endCal = Calendar.getInstance();
+        endCal.set(Calendar.HOUR_OF_DAY, (int) (event.endMinutes / 60));
+        endCal.set(Calendar.MINUTE, (int) (event.endMinutes % 60));
+        eventTextView.setText(String.format("%s\n%s - %s", event.subject.getName(), timeFormat.format(startCal.getTime()), timeFormat.format(endCal.getTime())));
 
+        // Creamos los parámetros de diseño para posicionar la tarjeta en el horario
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(dpToPx(colWidth), dpToPx((int) height));
         params.topMargin = dpToPx((int) topMargin);
         params.leftMargin = leftMargin;
         params.gravity = Gravity.TOP | Gravity.START;
 
+        // Añadimos la vista de tarjeta al contenedor del horario
         scheduleContainer.addView(eventView, params);
     }
 
@@ -309,6 +316,12 @@ public class ScheduleFragment extends Fragment {
         return textView;
     }
 
+    private int resolveColorAttr(int attr) {
+        TypedValue typedValue = new TypedValue();
+        requireContext().getTheme().resolveAttribute(attr, typedValue, true);
+        return typedValue.data;
+    }
+
     private TextView createEventView(Subject subject, float startMinutes, float endMinutes) {
         TextView eventView = new TextView(requireContext());
         SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
@@ -323,26 +336,21 @@ public class ScheduleFragment extends Fragment {
 
         eventView.setText(String.format("%s\n%s - %s", subject.getName(), timeFormat.format(startCal.getTime()), timeFormat.format(endCal.getTime())));
 
-        eventView.setTextColor(Color.WHITE);
+        // --- LA SOLUCIÓN DEFINITIVA ---
+        // 1. Aplicamos el fondo desde el archivo XML que creamos.
+        eventView.setBackgroundResource(R.drawable.event_background);
+
+        // 2. Leemos el color de texto correcto garantizado por el tema.
+        TypedValue typedValue = new TypedValue();
+        requireContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true);
+        eventView.setTextColor(typedValue.data);
+
+        // 3. Damos el resto de los estilos.
         eventView.setPadding(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4));
         eventView.setGravity(Gravity.CENTER);
         eventView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
 
-        GradientDrawable background = new GradientDrawable();
-        background.setCornerRadius(dpToPx(4));
-        background.setColor(getSubjectColor(subject.getName()));
-        background.setStroke(dpToPx(1), Color.DKGRAY);
-        eventView.setBackground(background);
         return eventView;
-    }
-
-    private int getSubjectColor(String subjectName) {
-        if (!subjectColors.containsKey(subjectName)) {
-            int color = eventColors[colorIndex % eventColors.length];
-            subjectColors.put(subjectName, color);
-            colorIndex = (colorIndex + 1) % eventColors.length;
-        }
-        return Objects.requireNonNull(subjectColors.get(subjectName));
     }
 
     private int dpToPx(int dp) {

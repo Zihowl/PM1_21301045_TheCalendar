@@ -48,13 +48,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // CORRECCIÓN: Inicializar todas las vistas aquí
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         drawerLayout = findViewById(R.id.drawer_layout);
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
-        contentMainView = findViewById(R.id.contentMain); // Se inicializa aquí
+        contentMainView = findViewById(R.id.contentMainLayout);
 
         setupViewModels();
         setupToolbarAndDrawer();
