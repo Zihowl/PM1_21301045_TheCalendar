@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Subject;
+import com.zihowl.thecalendar.ui.main.MainActivity;
 
 import java.util.Objects;
 import java.util.Set;
@@ -77,9 +78,15 @@ public class SubjectsFragment extends Fragment {
                 (subject, position) -> {
                     if (Boolean.TRUE.equals(viewModel.isSelectionMode.getValue())) {
                         viewModel.toggleSelection(subject);
+                    } else {
+                        if (getActivity() instanceof MainActivity) {
+                            ((MainActivity) getActivity()).showSubjectDetail(subject.getName());
+                        }
                     }
                 },
-                (subject, position) -> viewModel.toggleSelection(subject) // Lambda de expresión
+                (subject, position) -> { // onItemLongClick
+                    viewModel.toggleSelection(subject);
+                }
         );
     }
 

@@ -86,38 +86,45 @@ public class SubjectsAdapter extends ListAdapter<Subject, SubjectsAdapter.Subjec
         @Override
         public boolean areContentsTheSame(@NonNull Subject oldItem, @NonNull Subject newItem) {
             return oldItem.getName().equals(newItem.getName())
+                    && Objects.equals(oldItem.getProfessorName(), newItem.getProfessorName())
                     && oldItem.getSchedule().equals(newItem.getSchedule());
         }
     };
 
     public static class SubjectViewHolder extends RecyclerView.ViewHolder {
-        public TextView name, schedule, tasksPending, notesCount;
+        public TextView name, professorName, schedule, tasksPending, notesCount; // CAMBIADO
         public final ColorStateList defaultCardBackgroundColor;
 
         public SubjectViewHolder(@NonNull View itemView) {
             super(itemView);
             name = itemView.findViewById(R.id.textViewSubjectName);
+            professorName = itemView.findViewById(R.id.textViewProfessorName); // AÑADIDO
             schedule = itemView.findViewById(R.id.textViewSubjectSchedule);
             tasksPending = itemView.findViewById(R.id.textViewTasksPending);
             notesCount = itemView.findViewById(R.id.textViewNotesCount);
 
-            // Guardamos el color original de la tarjeta al crear el ViewHolder
-            defaultCardBackgroundColor = ((androidx.cardview.widget.CardView) itemView).getCardBackgroundColor(); // <- NUEVA LÍNEA
+            defaultCardBackgroundColor = ((androidx.cardview.widget.CardView) itemView).getCardBackgroundColor();
         }
 
         public void bind(final Subject subject, final OnItemClickListener clickListener, final OnItemLongClickListener longClickListener) {
             name.setText(subject.getName());
             schedule.setText(formatSchedule(subject.getSchedule()));
 
-            // CAMBIO: Usamos los recursos de strings con formato.
+            // AÑADIDO: Lógica para mostrar el nombre del profesor
+            if (subject.getProfessorName() != null && !subject.getProfessorName().isEmpty()) {
+                professorName.setText(subject.getProfessorName());
+                professorName.setVisibility(View.VISIBLE);
+            } else {
+                professorName.setVisibility(View.GONE);
+            }
+
             Resources res = itemView.getResources();
             tasksPending.setText(res.getString(R.string.subject_tasks_pending, subject.getTasksPending()));
             notesCount.setText(res.getString(R.string.subject_notes_count, subject.getNotesCount()));
 
             itemView.setOnClickListener(v -> {
-                // CAMBIO: Usamos getBindingAdapterPosition() que es más seguro.
                 int position = getBindingAdapterPosition();
-                if (position != RecyclerView.NO_POSITION) { // Siempre verificar que la posición es válida.
+                if (position != RecyclerView.NO_POSITION) {
                     clickListener.onItemClick(subject, position);
                 }
             });

@@ -19,17 +19,19 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
+        // CAMBIO: Reordena los fragments según la nueva disposición.
         switch (position) {
             case 0:
-                return new TasksFragment();
+                return new SubjectsFragment(); // Materias
             case 1:
-                return new NotesFragment();
+                return new TasksFragment();    // Tareas
             case 2:
-                return new ScheduleFragment();
+                return new NotesFragment();    // Notas
             case 3:
-                return new SubjectsFragment();
+                return new ScheduleFragment(); // Horario
             default:
-                return new TasksFragment();
+                // Por defecto, muestra el primer fragmento.
+                return new SubjectsFragment();
         }
     }
 

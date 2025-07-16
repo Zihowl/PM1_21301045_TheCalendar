@@ -30,28 +30,28 @@ public class SubjectsViewModel extends ViewModel {
     public void loadSubjects() {
         if (_subjects.getValue() == null) {
             ArrayList<Subject> dummyList = new ArrayList<>();
-            dummyList.add(new Subject("Cálculo Diferencial", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40", 3, 5));
-            dummyList.add(new Subject("Programación Móvil", "Martes 09:00 - 11:00\nJueves 09:00 - 11:00", 1, 8));
-            dummyList.add(new Subject("Bases de Datos", "Viernes 11:00 - 13:00", 0, 2));
+            dummyList.add(new Subject("Cálculo Diferencial", "Dr. Alan Turing", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40", 3, 5));
+            dummyList.add(new Subject("Programación Móvil", "Dra. Ada Lovelace", "Martes 09:00 - 11:00\nJueves 09:00 - 11:00", 1, 8));
+            dummyList.add(new Subject("Bases de Datos", null, "Viernes 11:00 - 13:00", 0, 2));
             _subjects.setValue(dummyList);
         }
     }
 
-    public void addSubject(String name, String schedule) {
+    public void addSubject(String name, String professorName, String schedule) {
         List<Subject> currentList = new ArrayList<>(_subjects.getValue() != null ? _subjects.getValue() : Collections.emptyList());
-        currentList.add(new Subject(name, schedule, 0, 0));
+        currentList.add(new Subject(name, professorName, schedule, 0, 0));
         _subjects.setValue(currentList);
     }
 
-    public void updateSubject(int position, String name, String schedule) {
+    public void updateSubject(int position, String name, String professorName, String schedule) {
         List<Subject> currentList = new ArrayList<>(_subjects.getValue() != null ? _subjects.getValue() : Collections.emptyList());
         if (position >= 0 && position < currentList.size()) {
             Subject subjectToUpdate = currentList.get(position);
-            // Creamos un nuevo objeto para asegurar que LiveData detecte el cambio.
-            currentList.set(position, new Subject(name, schedule, subjectToUpdate.getTasksPending(), subjectToUpdate.getNotesCount()));
+            currentList.set(position, new Subject(name, professorName, schedule, subjectToUpdate.getTasksPending(), subjectToUpdate.getNotesCount()));
             _subjects.setValue(currentList);
         }
     }
+
 
     public void deleteSelectedSubjects() {
         if (_subjects.getValue() == null || _selectedSubjects.getValue() == null) return;

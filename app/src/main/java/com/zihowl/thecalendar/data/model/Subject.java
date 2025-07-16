@@ -2,13 +2,15 @@ package com.zihowl.thecalendar.data.model;
 
 public class Subject {
     private String name;
+    private String professorName;
     private String schedule;
     private int tasksPending;
     private int notesCount;
 
     // Constructor
-    public Subject(String name, String schedule, int tasksPending, int notesCount) {
+    public Subject(String name, String professorName, String schedule, int tasksPending, int notesCount) {
         this.name = name;
+        this.professorName = professorName;
         this.schedule = schedule;
         this.tasksPending = tasksPending;
         this.notesCount = notesCount;
@@ -17,6 +19,10 @@ public class Subject {
     // Getters
     public String getName() {
         return name;
+    }
+
+    public String getProfessorName() {
+        return professorName;
     }
 
     public String getSchedule() {

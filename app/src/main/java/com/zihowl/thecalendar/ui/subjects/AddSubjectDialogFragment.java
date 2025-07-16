@@ -34,10 +34,12 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
     private static final String KEY_POSITION = "position";
     private static final String KEY_SUBJECT_NAME = "subject_name";
+    private static final String KEY_PROFESSOR_NAME = "professor_name";
     private static final String KEY_SUBJECT_SCHEDULE = "subject_schedule";
 
     private SubjectsViewModel viewModel;
     private TextInputEditText editTextName;
+    private TextInputEditText editTextProfessorName;
     private LinearLayout containerScheduleBlocks;
 
     // --- Métodos de Instancia ---
@@ -51,6 +53,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
         Bundle args = new Bundle();
         args.putInt(KEY_POSITION, position);
         args.putString(KEY_SUBJECT_NAME, subject.getName());
+        args.putString(KEY_PROFESSOR_NAME, subject.getProfessorName());
         args.putString(KEY_SUBJECT_SCHEDULE, subject.getSchedule());
         fragment.setArguments(args);
         return fragment;
@@ -70,6 +73,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_add_subject, null);
 
         editTextName = view.findViewById(R.id.editTextSubjectName);
+        editTextProfessorName = view.findViewById(R.id.editTextProfessorName);
         containerScheduleBlocks = view.findViewById(R.id.containerScheduleBlocks);
         Button buttonAddBlock = view.findViewById(R.id.buttonAddBlock);
         buttonAddBlock.setOnClickListener(v -> addScheduleBlock(null, null, null));
@@ -79,6 +83,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
         if (isEditing) {
             editTextName.setText(getArguments().getString(KEY_SUBJECT_NAME));
+            editTextProfessorName.setText(getArguments().getString(KEY_PROFESSOR_NAME));
             populateScheduleBlocksFromString(getArguments().getString(KEY_SUBJECT_SCHEDULE));
         }
 
@@ -164,15 +169,16 @@ public class AddSubjectDialogFragment extends DialogFragment {
             return;
         }
 
+        String professorName = Objects.requireNonNull(editTextProfessorName.getText()).toString().trim();
         String scheduleString = buildScheduleString();
         if (scheduleString == null) return;
 
         if (isEditing) {
             assert getArguments() != null;
             int position = getArguments().getInt(KEY_POSITION);
-            viewModel.updateSubject(position, name, scheduleString);
+            viewModel.updateSubject(position, name, professorName, scheduleString);
         } else {
-            viewModel.addSubject(name, scheduleString);
+            viewModel.addSubject(name, professorName, scheduleString);
         }
 
         viewModel.finishSelectionMode();

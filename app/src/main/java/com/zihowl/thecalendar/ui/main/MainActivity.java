@@ -7,7 +7,7 @@ import android.text.SpannableString;
 import android.text.style.StyleSpan;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,28 +22,37 @@ import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.ui.auth.LoginActivity;
 import com.zihowl.thecalendar.ui.notes.AddNoteDialogFragment;
 import com.zihowl.thecalendar.ui.subjects.AddSubjectDialogFragment;
+import com.zihowl.thecalendar.ui.subjects.SubjectDetailFragment;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private DrawerLayout drawerLayout;
     private ViewPager2 viewPager;
+    private View contentMain;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        contentMain = findViewById(R.id.contentMain);
+
         setupToolbarAndDrawer();
         setupViewPagerAndTabs();
     }
-
     private void setupToolbarAndDrawer() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
+
+        // Lógica para el botón de logout en el footer
+        View logoutButton = navigationView.findViewById(R.id.nav_logout_button);
+        if (logoutButton != null) {
+            logoutButton.setOnClickListener(v -> handleLogout());
+        }
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawerLayout, toolbar,
@@ -62,10 +71,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             String title = switch (position) {
-                case 0 -> "Tareas";
-                case 1 -> "Notas";
-                case 2 -> "Horario";
-                case 3 -> "Materias";
+                case 0 -> "Materias";
+                case 1 -> "Tareas";
+                case 2 -> "Notas";
+                case 3 -> "Horario";
                 default -> "";
             };
             SpannableString boldTitle = new SpannableString(title);
@@ -78,10 +87,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
                 String newTitle = switch (position) {
-                    case 0 -> "Tareas";
-                    case 1 -> "Notas";
-                    case 2 -> "Horario";
-                    case 3 -> "Materias";
+                    case 0 -> "Materias";
+                    case 1 -> "Tareas";
+                    case 2 -> "Notas";
+                    case 3 -> "Horario";
                     default -> getString(R.string.app_name);
                 };
                 if (getSupportActionBar() != null) {
@@ -90,11 +99,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 invalidateOptionsMenu();
             }
         });
-        viewPager.setCurrentItem(0); // Iniciar en la pestaña de Tareas
+        viewPager.setCurrentItem(0); // Iniciar en la pestaña de Materias
+    }
+
+    public void showSubjectDetail(String subjectName) {
+        SubjectDetailFragment fragment = SubjectDetailFragment.newInstance(subjectName);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.app_bar_main, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     public boolean isCurrentTab(int tabIndex) {
         return viewPager.getCurrentItem() == tabIndex;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+            getSupportFragmentManager().popBackStack();
+            // Restaurar el título original de la pestaña
+            if (getSupportActionBar() != null) {
+                String title = switch (viewPager.getCurrentItem()) {
+                    case 0 -> "Materias";
+                    case 1 -> "Tareas";
+                    case 2 -> "Notas";
+                    case 3 -> "Horario";
+                    default -> getString(R.string.app_name);
+                };
+                getSupportActionBar().setTitle(title);
+            }
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -108,14 +145,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (item.getItemId() == R.id.action_add) {
             int currentTab = viewPager.getCurrentItem();
             switch (currentTab) {
-                case 0:
+                case 0: // Materias
+                    new AddSubjectDialogFragment().show(getSupportFragmentManager(), "AddSubjectDialog");
+                    return true;
+                case 1: // Tareas
                     AddTaskDialogFragment.newInstance().show(getSupportFragmentManager(), "AddTaskDialog");
                     return true;
-                case 1:
+                case 2: // Notas
                     new AddNoteDialogFragment().show(getSupportFragmentManager(), "AddNoteDialog");
-                    return true;
-                case 3:
-                    new AddSubjectDialogFragment().show(getSupportFragmentManager(), "AddSubjectDialog");
                     return true;
             }
         }
@@ -124,20 +161,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.nav_logout) {
-            // Crear un Intent para volver a la pantalla de Login
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            // Añadir flags para limpiar la pila de actividades
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            // Finalizar esta actividad para que el usuario no pueda volver a ella
-            finish();
-            return true;
-        }
-
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void handleLogout() {
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }
