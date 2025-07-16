@@ -17,23 +17,13 @@ public class Subject {
     }
 
     // Getters
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+    public String getProfessorName() { return professorName; }
+    public String getSchedule() { return schedule; }
+    public int getTasksPending() { return tasksPending; }
+    public int getNotesCount() { return notesCount; }
 
-    public String getProfessorName() {
-        return professorName;
-    }
-
-    public String getSchedule() {
-        return schedule;
-    }
-
-    public int getTasksPending() {
-        return tasksPending;
-    }
-
-    public int getNotesCount() {
-        return notesCount;
-    }
+    // Setters (NUEVOS)
+    public void setTasksPending(int tasksPending) { this.tasksPending = tasksPending; }
+    public void setNotesCount(int notesCount) { this.notesCount = notesCount; }
 }

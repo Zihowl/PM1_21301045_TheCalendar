@@ -37,7 +37,7 @@ public class SubjectsFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // CAMBIO: Ya no se llama a setHasOptionsMenu(true).
+
         viewModel = new ViewModelProvider(requireActivity()).get(SubjectsViewModel.class);
 
         backPressedCallback = new OnBackPressedCallback(false) {
@@ -58,7 +58,7 @@ public class SubjectsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        setupMenu(); // NUEVO: Llamamos al método que configura el MenuProvider.
+        setupMenu();
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewSubjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -67,10 +67,6 @@ public class SubjectsFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         setupObservers();
-
-        if (viewModel.subjects.getValue() == null) {
-            viewModel.loadSubjects();
-        }
     }
 
     private void setupAdapter() {
@@ -84,14 +80,19 @@ public class SubjectsFragment extends Fragment {
                         }
                     }
                 },
-                (subject, position) -> { // onItemLongClick
+                (subject, position) -> {
                     viewModel.toggleSelection(subject);
                 }
         );
     }
 
+    // El observador ahora es mucho más simple.
     private void setupObservers() {
-        viewModel.subjects.observe(getViewLifecycleOwner(), subjects -> adapter.submitList(subjects));
+        viewModel.subjects.observe(getViewLifecycleOwner(), subjects -> {
+            if (subjects != null) {
+                adapter.submitList(subjects);
+            }
+        });
 
         viewModel.isSelectionMode.observe(getViewLifecycleOwner(), isSelection -> {
             backPressedCallback.setEnabled(isSelection);
@@ -115,16 +116,13 @@ public class SubjectsFragment extends Fragment {
         });
     }
 
-    // NUEVO: Método para configurar el menú de forma moderna y segura.
     private void setupMenu() {
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            }
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {}
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
-                // La lógica de visibilidad de los botones va aquí.
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedSubjects.getValue() != null ? viewModel.selectedSubjects.getValue().size() : 0;
 
@@ -135,7 +133,6 @@ public class SubjectsFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                // La lógica para manejar los clics en los botones va aquí.
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
                     showDeleteConfirmationDialog();
@@ -144,13 +141,11 @@ public class SubjectsFragment extends Fragment {
                     handleEditAction();
                     return true;
                 }
-                // Si este provider no maneja el evento, se devuelve false.
                 return false;
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
     }
 
-    // NUEVO: Método para manejar la acción de editar.
     private void handleEditAction() {
         Set<Subject> selected = viewModel.selectedSubjects.getValue();
         if (selected != null && !selected.isEmpty()) {
@@ -161,7 +156,6 @@ public class SubjectsFragment extends Fragment {
         }
     }
 
-    // NUEVO: Método centralizado y seguro para cambiar el título.
     private void updateActionBarTitle(String title) {
         if (getActivity() instanceof AppCompatActivity) {
             ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();

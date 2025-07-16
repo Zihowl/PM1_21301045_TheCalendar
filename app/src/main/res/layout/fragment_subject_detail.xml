@@ -6,44 +6,62 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    tools:context=".ui.subjects.SubjectDetailFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="8dp">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/detail_subject_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceHeadline6"
+                    tools:text="Programación Móvil I" />
+
+                <TextView
+                    android:id="@+id/detail_professor_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textAppearance="?attr/textAppearanceBody1"
+                    android:textColor="?android:attr/textColorSecondary"
+                    tools:text="Dra. Ada Lovelace" />
+
+                <TextView
+                    android:id="@+id/detail_schedule"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    tools:text="Martes 09:00 - 11:00\nJueves 09:00 - 11:00" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <TextView
-            android:id="@+id/detail_subject_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceHeadline5"
-            tools:text="Programación Móvil I" />
-
-        <TextView
-            android:id="@+id/detail_professor_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceHeadline6"
-            android:textColor="?android:attr/textColorSecondary"
-            tools:text="Dra. Ada Lovelace" />
-
-        <TextView
-            android:id="@+id/detail_schedule"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textAppearance="?attr/textAppearanceBody1"
-            tools:text="Martes 09:00 - 11:00\nJueves 09:00 - 11:00" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
-            android:text="Tareas Asociadas"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:layout_marginEnd="16dp"
+            android:text="Tareas"
+            android:textAppearance="?attr/textAppearanceHeadline6" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view_tasks"
@@ -56,9 +74,11 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
-            android:text="Notas Asociadas"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:layout_marginEnd="16dp"
+            android:text="Notas"
+            android:textAppearance="?attr/textAppearanceHeadline6" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view_notes"

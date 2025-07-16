@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
@@ -21,26 +22,55 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.ui.auth.LoginActivity;
 import com.zihowl.thecalendar.ui.notes.AddNoteDialogFragment;
+import com.zihowl.thecalendar.ui.notes.NotesViewModel;
 import com.zihowl.thecalendar.ui.subjects.AddSubjectDialogFragment;
 import com.zihowl.thecalendar.ui.subjects.SubjectDetailFragment;
+import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
+import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private DrawerLayout drawerLayout;
     private ViewPager2 viewPager;
-    private View contentMain;
+
+    // ViewModels
+    private SubjectsViewModel subjectsViewModel;
+    private TasksViewModel tasksViewModel;
+    private NotesViewModel notesViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        contentMain = findViewById(R.id.contentMain);
+        // --- SOLUCIÓN: INICIALIZAR Y CARGAR VIEWMODELS CENTRALMENTE ---
+        setupViewModels();
 
         setupToolbarAndDrawer();
         setupViewPagerAndTabs();
     }
+
+    private void setupViewModels() {
+        subjectsViewModel = new ViewModelProvider(this).get(SubjectsViewModel.class);
+        tasksViewModel = new ViewModelProvider(this).get(TasksViewModel.class);
+        notesViewModel = new ViewModelProvider(this).get(NotesViewModel.class);
+
+        // Cargar datos iniciales si es necesario
+        subjectsViewModel.loadSubjects();
+        tasksViewModel.loadTasks();
+        notesViewModel.loadNotes();
+
+        // --- SOLUCIÓN AL ANR: Orquestar actualizaciones desde aquí ---
+        // Cuando las tareas o notas cambien, se actualizan las estadísticas de las materias.
+        tasksViewModel.pendingTasks.observe(this, tasks ->
+                subjectsViewModel.updateSubjectStats(tasks, notesViewModel.notes.getValue()));
+        tasksViewModel.completedTasks.observe(this, tasks ->
+                subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notesViewModel.notes.getValue()));
+        notesViewModel.notes.observe(this, notes ->
+                subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notes));
+    }
+
     private void setupToolbarAndDrawer() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -48,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
 
-        // Lógica para el botón de logout en el footer
         View logoutButton = navigationView.findViewById(R.id.nav_logout_button);
         if (logoutButton != null) {
             logoutButton.setOnClickListener(v -> handleLogout());
@@ -99,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 invalidateOptionsMenu();
             }
         });
-        viewPager.setCurrentItem(0); // Iniciar en la pestaña de Materias
+        viewPager.setCurrentItem(0);
     }
 
     public void showSubjectDetail(String subjectName) {
@@ -118,7 +147,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onBackPressed() {
         if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
             getSupportFragmentManager().popBackStack();
-            // Restaurar el título original de la pestaña
             if (getSupportActionBar() != null) {
                 String title = switch (viewPager.getCurrentItem()) {
                     case 0 -> "Materias";
@@ -145,13 +173,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (item.getItemId() == R.id.action_add) {
             int currentTab = viewPager.getCurrentItem();
             switch (currentTab) {
-                case 0: // Materias
+                case 0:
                     new AddSubjectDialogFragment().show(getSupportFragmentManager(), "AddSubjectDialog");
                     return true;
-                case 1: // Tareas
+                case 1:
                     AddTaskDialogFragment.newInstance().show(getSupportFragmentManager(), "AddTaskDialog");
                     return true;
-                case 2: // Notas
+                case 2:
                     new AddNoteDialogFragment().show(getSupportFragmentManager(), "AddNoteDialog");
                     return true;
             }
@@ -170,5 +198,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    public void setDrawerLocked(boolean locked) {
+        if (locked) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        } else {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        }
     }
 }
