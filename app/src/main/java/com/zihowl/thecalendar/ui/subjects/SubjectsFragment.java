@@ -86,7 +86,6 @@ public class SubjectsFragment extends Fragment {
         );
     }
 
-    // El observador ahora es mucho más simple.
     private void setupObservers() {
         viewModel.subjects.observe(getViewLifecycleOwner(), subjects -> {
             if (subjects != null) {
@@ -123,6 +122,7 @@ public class SubjectsFragment extends Fragment {
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
+                if (!isCurrentFragment()) return;
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedSubjects.getValue() != null ? viewModel.selectedSubjects.getValue().size() : 0;
 
@@ -133,6 +133,7 @@ public class SubjectsFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (!isCurrentFragment()) return false;
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
                     showDeleteConfirmationDialog();
@@ -172,5 +173,12 @@ public class SubjectsFragment extends Fragment {
                 .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedSubjects())
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private boolean isCurrentFragment() {
+        if (getActivity() instanceof MainActivity) {
+            return ((MainActivity) getActivity()).isCurrentTab(0); // Índice 0 para Materias
+        }
+        return false;
     }
 }

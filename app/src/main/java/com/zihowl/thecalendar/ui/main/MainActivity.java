@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.navigation.NavigationView;
@@ -29,12 +30,15 @@ import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, FragmentManager.OnBackStackChangedListener {
 
     private DrawerLayout drawerLayout;
     private ViewPager2 viewPager;
+    private Toolbar toolbar;
+    private ActionBarDrawerToggle toggle;
+    private TabLayout tabLayout;
+    private View contentMainView; // Referencia para el layout principal
 
-    // ViewModels
     private SubjectsViewModel subjectsViewModel;
     private TasksViewModel tasksViewModel;
     private NotesViewModel notesViewModel;
@@ -44,11 +48,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // --- SOLUCIÓN: INICIALIZAR Y CARGAR VIEWMODELS CENTRALMENTE ---
-        setupViewModels();
+        // CORRECCIÓN: Inicializar todas las vistas aquí
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        drawerLayout = findViewById(R.id.drawer_layout);
+        viewPager = findViewById(R.id.viewPager);
+        tabLayout = findViewById(R.id.tabLayout);
+        contentMainView = findViewById(R.id.contentMain); // Se inicializa aquí
 
+        setupViewModels();
         setupToolbarAndDrawer();
         setupViewPagerAndTabs();
+
+        getSupportFragmentManager().addOnBackStackChangedListener(this);
     }
 
     private void setupViewModels() {
@@ -56,34 +68,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         tasksViewModel = new ViewModelProvider(this).get(TasksViewModel.class);
         notesViewModel = new ViewModelProvider(this).get(NotesViewModel.class);
 
-        // Cargar datos iniciales si es necesario
         subjectsViewModel.loadSubjects();
         tasksViewModel.loadTasks();
         notesViewModel.loadNotes();
 
-        // --- SOLUCIÓN AL ANR: Orquestar actualizaciones desde aquí ---
-        // Cuando las tareas o notas cambien, se actualizan las estadísticas de las materias.
         tasksViewModel.pendingTasks.observe(this, tasks ->
                 subjectsViewModel.updateSubjectStats(tasks, notesViewModel.notes.getValue()));
         tasksViewModel.completedTasks.observe(this, tasks ->
                 subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notesViewModel.notes.getValue()));
         notesViewModel.notes.observe(this, notes ->
                 subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notes));
+
+        subjectsViewModel.isSelectionMode.observe(this, isSelected -> updateUiLockState());
+        tasksViewModel.isSelectionMode.observe(this, isSelected -> updateUiLockState());
+        notesViewModel.isSelectionMode.observe(this, isSelected -> updateUiLockState());
     }
 
     private void setupToolbarAndDrawer() {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
-
         View logoutButton = navigationView.findViewById(R.id.nav_logout_button);
         if (logoutButton != null) {
             logoutButton.setOnClickListener(v -> handleLogout());
         }
-
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+        toggle = new ActionBarDrawerToggle(
                 this, drawerLayout, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(toggle);
@@ -93,10 +100,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void setupViewPagerAndTabs() {
         ViewPagerAdapter adapter = new ViewPagerAdapter(this);
-        viewPager = findViewById(R.id.viewPager);
         viewPager.setAdapter(adapter);
-
-        TabLayout tabLayout = findViewById(R.id.tabLayout);
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             String title = switch (position) {
@@ -115,16 +119,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                String newTitle = switch (position) {
-                    case 0 -> "Materias";
-                    case 1 -> "Tareas";
-                    case 2 -> "Notas";
-                    case 3 -> "Horario";
-                    default -> getString(R.string.app_name);
-                };
-                if (getSupportActionBar() != null) {
-                    getSupportActionBar().setTitle(newTitle);
-                }
+                updateTitleBasedOnPage(position);
                 invalidateOptionsMenu();
             }
         });
@@ -134,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void showSubjectDetail(String subjectName) {
         SubjectDetailFragment fragment = SubjectDetailFragment.newInstance(subjectName);
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.app_bar_main, fragment)
+                .add(R.id.detail_fragment_container, fragment)
                 .addToBackStack(null)
                 .commit();
     }
@@ -143,22 +138,85 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return viewPager.getCurrentItem() == tabIndex;
     }
 
+    private void updateTitleBasedOnPage(int position) {
+        String newTitle = switch (position) {
+            case 0 -> "Materias";
+            case 1 -> "Tareas";
+            case 2 -> "Notas";
+            case 3 -> "Horario";
+            default -> getString(R.string.app_name);
+        };
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(newTitle);
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
             getSupportFragmentManager().popBackStack();
-            if (getSupportActionBar() != null) {
-                String title = switch (viewPager.getCurrentItem()) {
-                    case 0 -> "Materias";
-                    case 1 -> "Tareas";
-                    case 2 -> "Notas";
-                    case 3 -> "Horario";
-                    default -> getString(R.string.app_name);
-                };
-                getSupportActionBar().setTitle(title);
-            }
         } else {
             super.onBackPressed();
+        }
+    }
+
+    @Override
+    public void onBackStackChanged() {
+        boolean isDetailVisible = getSupportFragmentManager().getBackStackEntryCount() > 0;
+        contentMainView.setVisibility(isDetailVisible ? View.GONE : View.VISIBLE);
+        setUiNavigationLock(isDetailVisible);
+        if (!isDetailVisible) {
+            updateTitleBasedOnPage(viewPager.getCurrentItem());
+        }
+    }
+
+    private void updateUiLockState() {
+        boolean isAnyFragmentInEditMode =
+                Boolean.TRUE.equals(subjectsViewModel.isSelectionMode.getValue()) ||
+                        Boolean.TRUE.equals(tasksViewModel.isSelectionMode.getValue()) ||
+                        Boolean.TRUE.equals(notesViewModel.isSelectionMode.getValue());
+
+        if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+            setUiNavigationLock(isAnyFragmentInEditMode);
+        }
+    }
+
+    public void setUiNavigationLock(boolean lock) {
+        viewPager.setUserInputEnabled(!lock);
+        int tabLayoutHeight = tabLayout.getHeight();
+        long animationDuration = 250;
+
+        tabLayout.animate()
+                .translationY(lock ? tabLayoutHeight : 0)
+                .setDuration(animationDuration)
+                .start();
+
+        if (lock) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            toggle.setDrawerIndicatorEnabled(false);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+            toggle.setToolbarNavigationClickListener(v -> onBackPressed());
+        } else {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+            }
+            toggle.setDrawerIndicatorEnabled(true);
+            toggle.setToolbarNavigationClickListener(null);
+            toggle.syncState();
+        }
+    }
+
+    private void finishCurrentFragmentSelectionMode() {
+        int currentItem = viewPager.getCurrentItem();
+        switch (currentItem) {
+            case 0: subjectsViewModel.finishSelectionMode(); break;
+            case 1: tasksViewModel.finishSelectionMode(); break;
+            case 2: notesViewModel.finishSelectionMode(); break;
         }
     }
 
@@ -198,13 +256,5 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    public void setDrawerLocked(boolean locked) {
-        if (locked) {
-            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        } else {
-            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        }
     }
 }

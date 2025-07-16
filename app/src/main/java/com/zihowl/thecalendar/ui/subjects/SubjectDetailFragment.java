@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -57,7 +58,6 @@ public class SubjectDetailFragment extends Fragment {
         if (getArguments() != null) {
             subjectName = getArguments().getString(ARG_SUBJECT_NAME);
         }
-        // --- SOLUCIÓN: INICIALIZAR VIEWMODELS ---
         subjectsViewModel = new ViewModelProvider(requireActivity()).get(SubjectsViewModel.class);
         tasksViewModel = new ViewModelProvider(requireActivity()).get(TasksViewModel.class);
         notesViewModel = new ViewModelProvider(requireActivity()).get(NotesViewModel.class);
@@ -66,7 +66,6 @@ public class SubjectDetailFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // --- SOLUCIÓN: PRE-CARGAR DATOS ANTES DE CREAR LA VISTA ---
         if (subjectsViewModel.subjects.getValue() == null) subjectsViewModel.loadSubjects();
         if (tasksViewModel.pendingTasks.getValue() == null) tasksViewModel.loadTasks();
         if (notesViewModel.notes.getValue() == null) notesViewModel.loadNotes();
@@ -78,17 +77,13 @@ public class SubjectDetailFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).setDrawerLocked(true);
+        if (getActivity() instanceof AppCompatActivity && ((AppCompatActivity) getActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle("Detalles");
         }
 
         setupAdapters();
         setupRecyclerViews(view);
-
-        // Dibuja la UI inmediatamente con los datos ya disponibles.
         updateAllUI(view);
-
-        // Añade observadores para reaccionar a cambios futuros.
         setupObservers();
     }
 
@@ -192,8 +187,5 @@ public class SubjectDetailFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).setDrawerLocked(false);
-        }
     }
 }

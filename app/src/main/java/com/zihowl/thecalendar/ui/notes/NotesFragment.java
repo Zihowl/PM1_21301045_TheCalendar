@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Note;
+import com.zihowl.thecalendar.ui.main.MainActivity;
 
 import java.util.Objects;
 import java.util.Set;
@@ -112,14 +113,11 @@ public class NotesFragment extends Fragment {
     private void setupMenu() {
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-                // El menú ya se infla en MainActivity
-            }
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {}
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
-                // Solo modificar el menú si este fragmento está visible
-                if (!isResumed()) return;
+                if (!isCurrentFragment()) return;
 
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedNotes.getValue() != null ? viewModel.selectedNotes.getValue().size() : 0;
@@ -136,6 +134,8 @@ public class NotesFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (!isCurrentFragment()) return false;
+
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
                     showDeleteConfirmationDialog();
@@ -175,5 +175,12 @@ public class NotesFragment extends Fragment {
                 actionBar.setTitle(title);
             }
         }
+    }
+
+    private boolean isCurrentFragment() {
+        if (getActivity() instanceof MainActivity) {
+            return ((MainActivity) getActivity()).isCurrentTab(2); // Índice 2 para Notas
+        }
+        return false;
     }
 }

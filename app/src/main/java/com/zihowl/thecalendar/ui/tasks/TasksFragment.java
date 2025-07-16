@@ -201,7 +201,7 @@ public class TasksFragment extends Fragment {
 
     private boolean isCurrentFragment() {
         if (getActivity() instanceof MainActivity) {
-            return ((MainActivity) getActivity()).isCurrentTab(0);
+            return ((MainActivity) getActivity()).isCurrentTab(1);
         }
         return false;
     }
