@@ -1,6 +1,11 @@
 package com.zihowl.thecalendar.data.model;
 
-public class Subject {
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
+
+public class Subject extends RealmObject {
+    @PrimaryKey
+    private int id;
     private String name;
     private String professorName;
     private String schedule;
@@ -26,4 +31,12 @@ public class Subject {
     // Setters (NUEVOS)
     public void setTasksPending(int tasksPending) { this.tasksPending = tasksPending; }
     public void setNotesCount(int notesCount) { this.notesCount = notesCount; }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 }

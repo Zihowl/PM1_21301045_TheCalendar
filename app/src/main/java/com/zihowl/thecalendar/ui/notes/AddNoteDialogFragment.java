@@ -3,6 +3,7 @@ package com.zihowl.thecalendar.ui.notes;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -19,6 +20,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.data.database.DbNote;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors; // Asegúrate de que este import exista
 
 public class AddNoteDialogFragment extends DialogFragment {
 
+    private static final String TAG = "AddNoteDialogFragment";
     private static final String KEY_POSITION = "position";
     private static final String KEY_NOTE_TITLE = "note_title";
     private static final String KEY_NOTE_CONTENT = "note_content";
@@ -134,6 +137,14 @@ public class AddNoteDialogFragment extends DialogFragment {
         String title = Objects.requireNonNull(editTextTitle.getText()).toString().trim();
         String content = Objects.requireNonNull(editTextContent.getText()).toString().trim();
         String subjectName = spinnerSubject.getSelectedItem().toString();
+        Log.e(TAG, "Titulo: " + title);
+        Note note = new Note(1, title, content, subjectName);
+        new DbNote().setNote(note);
+
+        List<Note> notes = new DbNote().getNotes(1);
+        for (Note n : notes) {
+            Log.e(TAG, "saveNote: " + n.getTitle() );
+        }
 
         if (TextUtils.isEmpty(title)) {
             editTextTitle.setError(getString(R.string.error_title_empty));
@@ -149,7 +160,7 @@ public class AddNoteDialogFragment extends DialogFragment {
             int position = getArguments().getInt(KEY_POSITION);
             viewModel.updateNote(position, title, content, subjectName);
         } else {
-            viewModel.addNote(new Note(title, content, subjectName));
+            viewModel.addNote(new Note(1, title, content, subjectName));
         }
 
         viewModel.finishSelectionMode();

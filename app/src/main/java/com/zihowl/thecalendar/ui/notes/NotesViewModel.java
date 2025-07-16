@@ -26,8 +26,8 @@ public class NotesViewModel extends ViewModel {
     public void loadNotes() {
         if (_notes.getValue() == null) {
             ArrayList<Note> dummyList = new ArrayList<>();
-            dummyList.add(new Note("Apunte de Cálculo", "Las derivadas son importantes...", "Cálculo Diferencial"));
-            dummyList.add(new Note("Recordatorio", "Estudiar para el examen de Bases de Datos.", "Bases de Datos"));
+            dummyList.add(new Note(1, "Apunte de Cálculo", "Las derivadas son importantes...", "Cálculo Diferencial"));
+            dummyList.add(new Note(2, "Recordatorio", "Estudiar para el examen de Bases de Datos.", "Bases de Datos"));
             _notes.setValue(dummyList);
         }
     }

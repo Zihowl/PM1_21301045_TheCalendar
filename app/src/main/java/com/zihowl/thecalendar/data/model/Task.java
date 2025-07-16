@@ -4,7 +4,12 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
-public class Task implements Serializable {
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
+
+public class Task extends RealmObject implements Serializable {
+    @PrimaryKey
+    private int id;
     private final String title;
     private final String description;
     private final Date dueDate;
@@ -34,9 +39,6 @@ public class Task implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        // La identidad de la tarea ahora se basa solo en el título.
-        // Esto permite que el sistema encuentre la tarea para moverla entre listas,
-        // independientemente de su estado 'isCompleted'.
         return title.equals(task.title);
     }
 
@@ -44,5 +46,13 @@ public class Task implements Serializable {
     public int hashCode() {
         // El hashCode también debe basarse solo en el título.
         return Objects.hash(title);
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

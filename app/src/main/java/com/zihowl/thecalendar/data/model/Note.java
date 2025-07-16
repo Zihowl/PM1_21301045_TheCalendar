@@ -1,36 +1,48 @@
 package com.zihowl.thecalendar.data.model;
 
-public class Note {
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
+
+public class Note extends RealmObject {
+    @PrimaryKey
+    private int id;
     private String title;
     private String content;
     private String subjectName;
 
-    public Note(String title, String content, String subjectName) {
+    public Note(int id, String title, String content, String subjectName) {
+        this.id = id;
         this.title = title;
         this.content = content;
         this.subjectName = subjectName;
     }
 
-    // Getters
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getTitle() {
         return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getContent() {
         return content;
     }
 
-    public String getSubjectName() {
-        return subjectName;
-    }
-
-    // Setters
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getSubjectName() {
+        return subjectName;
     }
 
     public void setSubjectName(String subjectName) {
