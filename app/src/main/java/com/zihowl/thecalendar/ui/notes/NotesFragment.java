@@ -153,8 +153,7 @@ public class NotesFragment extends Fragment {
         Set<Note> selected = viewModel.selectedNotes.getValue();
         if (selected != null && !selected.isEmpty()) {
             Note noteToEdit = selected.iterator().next();
-            int position = Objects.requireNonNull(viewModel.notes.getValue()).indexOf(noteToEdit);
-            AddNoteDialogFragment dialog = AddNoteDialogFragment.newInstance(position, noteToEdit);
+            AddNoteDialogFragment dialog = AddNoteDialogFragment.newInstance(noteToEdit);
             dialog.show(getParentFragmentManager(), "EditNoteDialog");
         }
     }

@@ -10,19 +10,18 @@ import com.zihowl.thecalendar.domain.usecase.subject.DeleteSubjectsUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.GetSubjectsUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.UpdateSubjectUseCase;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 public class SubjectsViewModel extends ViewModel {
 
-    // Casos de Uso inyectados
     private final GetSubjectsUseCase getSubjectsUseCase;
     private final AddSubjectUseCase addSubjectUseCase;
     private final UpdateSubjectUseCase updateSubjectUseCase;
     private final DeleteSubjectsUseCase deleteSubjectsUseCase;
 
-    // LiveData para la UI
     private final MutableLiveData<List<Subject>> _subjects = new MutableLiveData<>();
     public final LiveData<List<Subject>> subjects = _subjects;
 
@@ -32,13 +31,11 @@ public class SubjectsViewModel extends ViewModel {
     private final MutableLiveData<Set<Subject>> _selectedSubjects = new MutableLiveData<>(new LinkedHashSet<>());
     public final LiveData<Set<Subject>> selectedSubjects = _selectedSubjects;
 
-
-    // El ViewModel debería recibir los casos de uso a través de un ViewModelFactory
-    public SubjectsViewModel(GetSubjectsUseCase getSubjectsUseCase, AddSubjectUseCase addSubjectUseCase, UpdateSubjectUseCase updateSubjectUseCase, DeleteSubjectsUseCase deleteSubjectsUseCase) {
-        this.getSubjectsUseCase = getSubjectsUseCase;
-        this.addSubjectUseCase = addSubjectUseCase;
-        this.updateSubjectUseCase = updateSubjectUseCase;
-        this.deleteSubjectsUseCase = deleteSubjectsUseCase;
+    public SubjectsViewModel(GetSubjectsUseCase get, AddSubjectUseCase add, UpdateSubjectUseCase update, DeleteSubjectsUseCase delete) {
+        this.getSubjectsUseCase = get;
+        this.addSubjectUseCase = add;
+        this.updateSubjectUseCase = update;
+        this.deleteSubjectsUseCase = delete;
         loadSubjects();
     }
 
@@ -46,24 +43,26 @@ public class SubjectsViewModel extends ViewModel {
         _subjects.setValue(getSubjectsUseCase.execute());
     }
 
+    // --- CORREGIDO ---
     public void addSubject(String name, String professorName, String schedule) {
         addSubjectUseCase.execute(name, professorName, schedule);
-        loadSubjects(); // Recargar la lista para mostrar el nuevo elemento
+        loadSubjects();
     }
 
-    public void updateSubject(int position, String name, String professorName, String schedule) {
-        Subject originalSubject = _subjects.getValue().get(position);
-        updateSubjectUseCase.execute(originalSubject, name, professorName, schedule);
+    // --- CORREGIDO ---
+    public void updateSubject(Subject originalSubject, String newName, String newProfessorName, String newSchedule) {
+        updateSubjectUseCase.execute(originalSubject, newName, newProfessorName, newSchedule);
         loadSubjects();
     }
 
     public void deleteSelectedSubjects() {
-        deleteSubjectsUseCase.execute(List.copyOf(_selectedSubjects.getValue()));
+        if (_selectedSubjects.getValue() != null) {
+            deleteSubjectsUseCase.execute(new ArrayList<>(_selectedSubjects.getValue()));
+        }
         finishSelectionMode();
         loadSubjects();
     }
 
-    // --- Lógica de Selección (se mantiene igual) ---
     public void toggleSelection(Subject subject) {
         Set<Subject> selected = new LinkedHashSet<>(_selectedSubjects.getValue() != null ? _selectedSubjects.getValue() : new LinkedHashSet<>());
         if (selected.contains(subject)) {

@@ -4,7 +4,10 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.zihowl.thecalendar.data.model.Note;
+import com.zihowl.thecalendar.domain.usecase.note.AddNoteUseCase;
+import com.zihowl.thecalendar.domain.usecase.note.DeleteNotesUseCase;
 import com.zihowl.thecalendar.domain.usecase.note.GetNotesUseCase;
+import com.zihowl.thecalendar.domain.usecase.note.UpdateNoteUseCase;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -13,10 +16,11 @@ import java.util.Set;
 
 public class NotesViewModel extends ViewModel {
 
-    // --- Dependencia (Caso de Uso) ---
     private final GetNotesUseCase getNotesUseCase;
+    private final AddNoteUseCase addNoteUseCase;
+    private final UpdateNoteUseCase updateNoteUseCase;
+    private final DeleteNotesUseCase deleteNotesUseCase;
 
-    // --- LiveData para la UI ---
     private final MutableLiveData<List<Note>> _notes = new MutableLiveData<>(new ArrayList<>());
     public final LiveData<List<Note>> notes = _notes;
 
@@ -26,50 +30,34 @@ public class NotesViewModel extends ViewModel {
     private final MutableLiveData<Set<Note>> _selectedNotes = new MutableLiveData<>(new LinkedHashSet<>());
     public final LiveData<Set<Note>> selectedNotes = _selectedNotes;
 
-    /**
-     * Constructor que recibe las dependencias (Casos de Uso) a través del ViewModelFactory.
-     */
-    public NotesViewModel(GetNotesUseCase getNotesUseCase) {
-        this.getNotesUseCase = getNotesUseCase;
-        loadNotes(); // Carga inicial de notas
+    public NotesViewModel(GetNotesUseCase get, AddNoteUseCase add, UpdateNoteUseCase update, DeleteNotesUseCase delete) {
+        this.getNotesUseCase = get;
+        this.addNoteUseCase = add;
+        this.updateNoteUseCase = update;
+        this.deleteNotesUseCase = delete;
+        loadNotes();
     }
 
-    /**
-     * Carga o recarga la lista de notas desde el repositorio.
-     */
-    public void loadNotes() {
-        _notes.setValue(getNotesUseCase.execute());
-    }
+    public void loadNotes() { _notes.setValue(getNotesUseCase.execute()); }
 
-    /**
-     * Añade una nueva nota.
-     * En una implementación completa, esto llamaría a un AddNoteUseCase.
-     */
     public void addNote(Note note) {
-        // En un futuro, aquí se llamaría a un AddNoteUseCase
+        addNoteUseCase.execute(note);
         loadNotes();
     }
 
-    /**
-     * Actualiza una nota existente.
-     * En una implementación completa, esto llamaría a un UpdateNoteUseCase.
-     */
-    public void updateNote(int position, String title, String content, String subjectName) {
-        // En un futuro, aquí se llamaría a un UpdateNoteUseCase
+    public void updateNote(Note note, String newTitle, String newContent, String newSubjectName) {
+        note.setTitle(newTitle);
+        note.setContent(newContent);
+        note.setSubjectName(newSubjectName);
+        updateNoteUseCase.execute(note);
         loadNotes();
     }
 
-    /**
-     * Elimina las notas seleccionadas.
-     * En una implementación completa, esto llamaría a un DeleteNotesUseCase.
-     */
     public void deleteSelectedNotes() {
-        // En un futuro, aquí se llamaría a un DeleteNotesUseCase
+        deleteNotesUseCase.execute(new ArrayList<>(_selectedNotes.getValue()));
         finishSelectionMode();
         loadNotes();
     }
-
-    // --- Lógica de Selección (sin cambios) ---
 
     public void toggleSelection(Note note) {
         Set<Note> selected = new LinkedHashSet<>(_selectedNotes.getValue() != null ? _selectedNotes.getValue() : new LinkedHashSet<>());

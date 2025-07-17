@@ -151,8 +151,7 @@ public class SubjectsFragment extends Fragment {
         Set<Subject> selected = viewModel.selectedSubjects.getValue();
         if (selected != null && !selected.isEmpty()) {
             Subject subjectToEdit = selected.iterator().next();
-            int position = Objects.requireNonNull(viewModel.subjects.getValue()).indexOf(subjectToEdit);
-            AddSubjectDialogFragment dialog = AddSubjectDialogFragment.newInstance(position, subjectToEdit);
+            AddSubjectDialogFragment dialog = AddSubjectDialogFragment.newInstance(subjectToEdit);
             dialog.show(getParentFragmentManager(), "EditSubjectDialog");
         }
     }

@@ -4,21 +4,24 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.zihowl.thecalendar.data.model.Task;
+import com.zihowl.thecalendar.domain.usecase.task.AddTaskUseCase;
+import com.zihowl.thecalendar.domain.usecase.task.DeleteTasksUseCase;
 import com.zihowl.thecalendar.domain.usecase.task.GetTasksUseCase;
 import com.zihowl.thecalendar.domain.usecase.task.UpdateTaskUseCase;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 public class TasksViewModel extends ViewModel {
 
-    // --- Dependencias (Casos de Uso) ---
     private final GetTasksUseCase getTasksUseCase;
+    private final AddTaskUseCase addTaskUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
+    private final DeleteTasksUseCase deleteTasksUseCase;
 
-    // --- LiveData para la UI ---
     private final MutableLiveData<List<Task>> _pendingTasks = new MutableLiveData<>(new ArrayList<>());
     public final LiveData<List<Task>> pendingTasks = _pendingTasks;
 
@@ -37,56 +40,41 @@ public class TasksViewModel extends ViewModel {
     private final MutableLiveData<Boolean> _isCompletedExpanded = new MutableLiveData<>(true);
     public final LiveData<Boolean> isCompletedExpanded = _isCompletedExpanded;
 
-    /**
-     * Constructor que recibe las dependencias (Casos de Uso) a través del ViewModelFactory.
-     */
-    public TasksViewModel(GetTasksUseCase getTasksUseCase, UpdateTaskUseCase updateTaskUseCase) {
-        this.getTasksUseCase = getTasksUseCase;
-        this.updateTaskUseCase = updateTaskUseCase;
-        loadTasks(); // Carga inicial de tareas
+    public TasksViewModel(GetTasksUseCase get, AddTaskUseCase add, UpdateTaskUseCase update, DeleteTasksUseCase delete) {
+        this.getTasksUseCase = get;
+        this.addTaskUseCase = add;
+        this.updateTaskUseCase = update;
+        this.deleteTasksUseCase = delete;
+        loadTasks();
     }
 
-    /**
-     * Carga o recarga las listas de tareas pendientes y completadas desde el repositorio.
-     */
     public void loadTasks() {
         _pendingTasks.setValue(getTasksUseCase.getPending());
         _completedTasks.setValue(getTasksUseCase.getCompleted());
     }
 
-    /**
-     * Actualiza una tarea existente con nueva información.
-     * En una implementación completa, esto llamaría a un AddTaskUseCase.
-     */
     public void addTask(Task task) {
-        // En un futuro, aquí se llamaría a un AddTaskUseCase
+        addTaskUseCase.execute(task);
         loadTasks();
     }
 
-    /**
-     * Actualiza las propiedades de una tarea y lo persiste en la base de datos.
-     */
-    public void updateTask(Task originalTask, String newTitle, String newDescription, String newSubjectName) {
+    public void updateTask(Task originalTask, String newTitle, String newDescription, String newSubjectName, Date newDate) {
         originalTask.setTitle(newTitle);
         originalTask.setDescription(newDescription);
         originalTask.setSubjectName(newSubjectName);
-        updateTaskUseCase.execute(originalTask); // Guarda el objeto modificado
-        loadTasks(); // Recarga las listas para reflejar el cambio
+        originalTask.setDueDate(newDate);
+        updateTaskUseCase.execute(originalTask);
+        loadTasks();
     }
 
-    /**
-     * Cambia el estado de completado de una tarea y lo persiste.
-     */
     public void toggleTaskCompletion(Task task) {
         task.setCompleted(!task.isCompleted());
-        updateTaskUseCase.execute(task); // Guarda el nuevo estado
-        loadTasks(); // Recarga las listas para mover la tarea a la sección correcta
+        updateTaskUseCase.execute(task);
+        loadTasks();
     }
 
-    // --- Lógica de selección y expansión (sin cambios) ---
-
     public void deleteSelectedTasks() {
-        // En un futuro, aquí se llamaría a un DeleteTasksUseCase
+        deleteTasksUseCase.execute(new ArrayList<>(_selectedTasks.getValue()));
         finishSelectionMode();
         loadTasks();
     }

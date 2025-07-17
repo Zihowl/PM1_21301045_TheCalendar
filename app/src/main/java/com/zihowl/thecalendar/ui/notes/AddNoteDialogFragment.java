@@ -8,7 +8,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,6 +19,7 @@ import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -27,30 +27,23 @@ import java.util.stream.Collectors;
 
 public class AddNoteDialogFragment extends DialogFragment {
 
-    private static final String KEY_POSITION = "position";
-    private static final String KEY_NOTE_TITLE = "note_title";
-    private static final String KEY_NOTE_CONTENT = "note_content";
-    private static final String KEY_NOTE_SUBJECT = "note_subject";
+    private static final String KEY_NOTE = "note";
 
     private NotesViewModel viewModel;
     private SubjectsViewModel subjectsViewModel;
-    private TextInputEditText editTextTitle;
-    private TextInputEditText editTextContent;
+    private TextInputEditText editTextTitle, editTextContent;
     private Spinner spinnerSubject;
+    private boolean isEditing = false;
+    private Note originalNote;
 
-    // --- MÉTODO newInstance PARA CREAR EL DIÁLOGO ---
     public static AddNoteDialogFragment newInstance() {
         return new AddNoteDialogFragment();
     }
 
-    // --- MÉTODO newInstance QUE FALTABA (PARA EDITAR) ---
-    public static AddNoteDialogFragment newInstance(int position, @NonNull Note note) {
+    public static AddNoteDialogFragment newInstance(@NonNull Note note) {
         AddNoteDialogFragment fragment = new AddNoteDialogFragment();
         Bundle args = new Bundle();
-        args.putInt(KEY_POSITION, position);
-        args.putString(KEY_NOTE_TITLE, note.getTitle());
-        args.putString(KEY_NOTE_CONTENT, note.getContent());
-        args.putString(KEY_NOTE_SUBJECT, note.getSubjectName());
+        args.putSerializable(KEY_NOTE, (Serializable) note);
         fragment.setArguments(args);
         return fragment;
     }
@@ -60,15 +53,17 @@ public class AddNoteDialogFragment extends DialogFragment {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity()).get(NotesViewModel.class);
         subjectsViewModel = new ViewModelProvider(requireActivity()).get(SubjectsViewModel.class);
+        if (getArguments() != null) {
+            originalNote = (Note) getArguments().getSerializable(KEY_NOTE);
+            isEditing = (originalNote != null);
+        }
     }
 
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        // --- CÓDIGO DEL MÉTODO COMPLETO Y CORREGIDO ---
         AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
-        LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_add_note, null);
+        View view = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_note, null);
 
         editTextTitle = view.findViewById(R.id.editTextNoteTitle);
         editTextContent = view.findViewById(R.id.editTextNoteContent);
@@ -77,13 +72,12 @@ public class AddNoteDialogFragment extends DialogFragment {
 
         setupSubjectSpinner();
 
-        boolean isEditing = getArguments() != null;
         dialogTitleView.setText(isEditing ? R.string.dialog_title_edit_note : R.string.dialog_title_new_note);
 
         if (isEditing) {
-            editTextTitle.setText(getArguments().getString(KEY_NOTE_TITLE));
-            editTextContent.setText(getArguments().getString(KEY_NOTE_CONTENT));
-            selectSpinnerValue(getArguments().getString(KEY_NOTE_SUBJECT));
+            editTextTitle.setText(originalNote.getTitle());
+            editTextContent.setText(originalNote.getContent());
+            selectSpinnerValue(originalNote.getSubjectName());
         }
 
         builder.setView(view)
@@ -93,16 +87,16 @@ public class AddNoteDialogFragment extends DialogFragment {
         AlertDialog dialog = builder.create();
         dialog.setOnShowListener(dialogInterface -> {
             Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            button.setOnClickListener(v -> saveNote(isEditing));
+            button.setOnClickListener(v -> saveNote());
         });
 
         return dialog;
     }
 
     private void setupSubjectSpinner() {
-        List<Subject> subjects = subjectsViewModel.subjects.getValue();
         List<String> subjectNames = new ArrayList<>();
         subjectNames.add(getString(R.string.none));
+        List<Subject> subjects = subjectsViewModel.subjects.getValue();
         if (subjects != null) {
             subjectNames.addAll(subjects.stream().map(Subject::getName).collect(Collectors.toList()));
         }
@@ -113,20 +107,15 @@ public class AddNoteDialogFragment extends DialogFragment {
 
     private void selectSpinnerValue(String subjectName) {
         if (subjectName == null) return;
-        SpinnerAdapter adapter = spinnerSubject.getAdapter();
-        if (adapter instanceof ArrayAdapter) {
-            @SuppressWarnings("unchecked")
-            ArrayAdapter<String> stringArrayAdapter = (ArrayAdapter<String>) adapter;
-            for (int i = 0; i < stringArrayAdapter.getCount(); i++) {
-                if (subjectName.equals(stringArrayAdapter.getItem(i))) {
-                    spinnerSubject.setSelection(i);
-                    break;
-                }
+        for (int i = 0; i < spinnerSubject.getAdapter().getCount(); i++) {
+            if (subjectName.equals(spinnerSubject.getAdapter().getItem(i))) {
+                spinnerSubject.setSelection(i);
+                break;
             }
         }
     }
 
-    private void saveNote(boolean isEditing) {
+    private void saveNote() {
         String title = Objects.requireNonNull(editTextTitle.getText()).toString().trim();
         String content = Objects.requireNonNull(editTextContent.getText()).toString().trim();
         String subjectName = spinnerSubject.getSelectedItem().toString();
@@ -141,13 +130,9 @@ public class AddNoteDialogFragment extends DialogFragment {
         }
 
         if (isEditing) {
-            assert getArguments() != null;
-            int position = getArguments().getInt(KEY_POSITION);
-            // Asumimos que el ViewModel tiene un método para actualizar
-            // viewModel.updateNote(position, title, content, subjectName);
+            viewModel.updateNote(originalNote, title, content, subjectName);
         } else {
-            // El ID será gestionado por la BD, pasamos 0 o un valor temporal.
-            viewModel.addNote(new Note(0, title, content, subjectName));
+            viewModel.addNote(new Note(title, content, subjectName));
         }
 
         viewModel.finishSelectionMode();

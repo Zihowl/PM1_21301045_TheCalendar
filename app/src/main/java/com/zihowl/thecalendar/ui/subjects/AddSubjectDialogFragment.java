@@ -24,6 +24,7 @@ import com.google.android.material.timepicker.TimeFormat;
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Subject;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -32,29 +33,23 @@ import java.util.Objects;
 
 public class AddSubjectDialogFragment extends DialogFragment {
 
-    private static final String KEY_POSITION = "position";
-    private static final String KEY_SUBJECT_NAME = "subject_name";
-    private static final String KEY_PROFESSOR_NAME = "professor_name";
-    private static final String KEY_SUBJECT_SCHEDULE = "subject_schedule";
+    private static final String KEY_SUBJECT = "subject";
 
     private SubjectsViewModel viewModel;
     private TextInputEditText editTextName;
     private TextInputEditText editTextProfessorName;
     private LinearLayout containerScheduleBlocks;
+    private boolean isEditing = false;
+    private Subject originalSubject;
 
-    // --- Métodos de Instancia ---
-    @SuppressWarnings("unused") // Suprime el warning de método no usado
     public static AddSubjectDialogFragment newInstance() {
         return new AddSubjectDialogFragment();
     }
 
-    public static AddSubjectDialogFragment newInstance(int position, @NonNull Subject subject) {
+    public static AddSubjectDialogFragment newInstance(@NonNull Subject subject) {
         AddSubjectDialogFragment fragment = new AddSubjectDialogFragment();
         Bundle args = new Bundle();
-        args.putInt(KEY_POSITION, position);
-        args.putString(KEY_SUBJECT_NAME, subject.getName());
-        args.putString(KEY_PROFESSOR_NAME, subject.getProfessorName());
-        args.putString(KEY_SUBJECT_SCHEDULE, subject.getSchedule());
+        args.putSerializable(KEY_SUBJECT, (Serializable) subject);
         fragment.setArguments(args);
         return fragment;
     }
@@ -63,6 +58,10 @@ public class AddSubjectDialogFragment extends DialogFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity()).get(SubjectsViewModel.class);
+        if (getArguments() != null) {
+            originalSubject = (Subject) getArguments().getSerializable(KEY_SUBJECT);
+            isEditing = (originalSubject != null);
+        }
     }
 
     @NonNull
@@ -78,13 +77,12 @@ public class AddSubjectDialogFragment extends DialogFragment {
         Button buttonAddBlock = view.findViewById(R.id.buttonAddBlock);
         buttonAddBlock.setOnClickListener(v -> addScheduleBlock(null, null, null));
 
-        boolean isEditing = getArguments() != null;
         String dialogTitle = isEditing ? "Editar Materia" : "Nueva Materia";
 
-        if (isEditing) {
-            editTextName.setText(getArguments().getString(KEY_SUBJECT_NAME));
-            editTextProfessorName.setText(getArguments().getString(KEY_PROFESSOR_NAME));
-            populateScheduleBlocksFromString(getArguments().getString(KEY_SUBJECT_SCHEDULE));
+        if (isEditing && originalSubject != null) {
+            editTextName.setText(originalSubject.getName());
+            editTextProfessorName.setText(originalSubject.getProfessorName());
+            populateScheduleBlocksFromString(originalSubject.getSchedule());
         }
 
         builder.setView(view)
@@ -95,15 +93,15 @@ public class AddSubjectDialogFragment extends DialogFragment {
         AlertDialog dialog = builder.create();
         dialog.setOnShowListener(dialogInterface -> {
             Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            button.setOnClickListener(v -> saveSubject(isEditing));
+            button.setOnClickListener(v -> saveSubject());
         });
 
         return dialog;
     }
 
+    // --- ¡MÉTODO RESTAURADO! ---
     private void addScheduleBlock(@Nullable String day, @Nullable String startTime24h, @Nullable String endTime24h) {
-        LayoutInflater inflater = getLayoutInflater();
-        View blockView = inflater.inflate(R.layout.item_schedule_block, containerScheduleBlocks, false);
+        View blockView = getLayoutInflater().inflate(R.layout.item_schedule_block, containerScheduleBlocks, false);
 
         Spinner spinnerDay = blockView.findViewById(R.id.spinnerDay);
         TextView textViewStartTime = blockView.findViewById(R.id.textViewStartTime);
@@ -115,7 +113,6 @@ public class AddSubjectDialogFragment extends DialogFragment {
         buttonRemoveBlock.setOnClickListener(v -> containerScheduleBlocks.removeView(blockView));
 
         if (day != null) {
-            getResources().getStringArray(R.array.week_days);
             String[] daysArray = getResources().getStringArray(R.array.week_days);
             for (int i = 0; i < daysArray.length; i++) {
                 if (daysArray[i].equalsIgnoreCase(day)) {
@@ -151,10 +148,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
                 .build();
 
         picker.addOnPositiveButtonClickListener(v -> {
-            int selectedHour = picker.getHour();
-            int selectedMinute = picker.getMinute();
-
-            String time24h = String.format(Locale.getDefault(), "%02d:%02d", selectedHour, selectedMinute);
+            String time24h = String.format(Locale.getDefault(), "%02d:%02d", picker.getHour(), picker.getMinute());
             timeTextView.setText(formatTo12Hour(time24h));
             timeTextView.setTag(time24h);
         });
@@ -162,7 +156,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
         picker.show(getParentFragmentManager(), "TimePicker");
     }
 
-    private void saveSubject(boolean isEditing) {
+    private void saveSubject() {
         String name = Objects.requireNonNull(editTextName.getText()).toString().trim();
         if (TextUtils.isEmpty(name)) {
             editTextName.setError("El nombre no puede estar vacío");
@@ -174,9 +168,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
         if (scheduleString == null) return;
 
         if (isEditing) {
-            assert getArguments() != null;
-            int position = getArguments().getInt(KEY_POSITION);
-            viewModel.updateSubject(position, name, professorName, scheduleString);
+            viewModel.updateSubject(originalSubject, name, professorName, scheduleString);
         } else {
             viewModel.addSubject(name, professorName, scheduleString);
         }
@@ -192,34 +184,30 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
         for (int i = 0; i < containerScheduleBlocks.getChildCount(); i++) {
             View blockView = containerScheduleBlocks.getChildAt(i);
-            Spinner spinnerDay = blockView.findViewById(R.id.spinnerDay);
-            TextView textViewStartTime = blockView.findViewById(R.id.textViewStartTime);
-            TextView textViewEndTime = blockView.findViewById(R.id.textViewEndTime);
-
-            String startTimeStr = textViewStartTime.getTag() instanceof String ? (String) textViewStartTime.getTag() : null;
-            String endTimeStr = textViewEndTime.getTag() instanceof String ? (String) textViewEndTime.getTag() : null;
+            TextView tvStart = blockView.findViewById(R.id.textViewStartTime);
+            TextView tvEnd = blockView.findViewById(R.id.textViewEndTime);
+            String startTimeStr = tvStart.getTag() instanceof String ? (String) tvStart.getTag() : null;
+            String endTimeStr = tvEnd.getTag() instanceof String ? (String) tvEnd.getTag() : null;
 
             if (startTimeStr == null || endTimeStr == null) {
-                Toast.makeText(getContext(), "Selecciona hora de inicio y fin para todos los bloques.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Define hora de inicio y fin para todos los bloques.", Toast.LENGTH_SHORT).show();
                 return null;
             }
 
-            // --- NUEVO: Validación de horario invertido ---
             try {
                 Date startTime = sdf.parse(startTimeStr);
                 Date endTime = sdf.parse(endTimeStr);
                 if (startTime != null && endTime != null && startTime.after(endTime)) {
-                    Toast.makeText(getContext(), "La hora de fin no puede ser anterior a la hora de inicio.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "La hora de fin no puede ser anterior al inicio.", Toast.LENGTH_LONG).show();
                     return null;
                 }
             } catch (ParseException e) {
-                // Esto no debería pasar si el formato es correcto
-                Toast.makeText(getContext(), "Error en el formato de hora.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Formato de hora inválido.", Toast.LENGTH_SHORT).show();
                 return null;
             }
 
-            String day = spinnerDay.getSelectedItem().toString();
-            scheduleBuilder.append(day).append(" ").append(startTimeStr).append(" - ").append(endTimeStr);
+            Spinner spinnerDay = blockView.findViewById(R.id.spinnerDay);
+            scheduleBuilder.append(spinnerDay.getSelectedItem().toString()).append(" ").append(startTimeStr).append(" - ").append(endTimeStr);
             if (i < containerScheduleBlocks.getChildCount() - 1) {
                 scheduleBuilder.append("\n");
             }
@@ -227,30 +215,26 @@ public class AddSubjectDialogFragment extends DialogFragment {
         return scheduleBuilder.toString();
     }
 
+    // --- ¡MÉTODO RESTAURADO! ---
     private void populateScheduleBlocksFromString(String schedule) {
         if (schedule == null || schedule.isEmpty()) return;
-
-        String[] lines = schedule.split("\n");
-        for (String line : lines) {
+        for (String line : schedule.split("\n")) {
             try {
                 String[] parts = line.split(" ");
                 String day = parts[0];
                 String[] times = line.substring(day.length()).trim().split(" - ");
-                addScheduleBlock(day, times[0], times[1]);
-            } catch (Exception e) {
-                // Ignorar líneas con formato incorrecto
-            }
+                addScheduleBlock(day, times[0], times[1]); // <-- Esta línea ya no dará error
+            } catch (Exception ignored) {}
         }
     }
 
     private String formatTo12Hour(String time24h) {
-        if (time24h == null || time24h.isEmpty()) return "";
         try {
             SimpleDateFormat sdf24 = new SimpleDateFormat("HH:mm", Locale.getDefault());
             SimpleDateFormat sdf12 = new SimpleDateFormat("hh:mm a", Locale.getDefault());
             return sdf12.format(Objects.requireNonNull(sdf24.parse(time24h)));
-        } catch (ParseException | NullPointerException e) {
-            return time24h;
+        } catch (Exception e) {
+            return "Hora";
         }
     }
 }

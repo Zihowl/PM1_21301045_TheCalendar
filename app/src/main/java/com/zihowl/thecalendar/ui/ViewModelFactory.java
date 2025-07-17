@@ -6,10 +6,9 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
-import com.zihowl.thecalendar.domain.usecase.note.GetNotesUseCase;
+import com.zihowl.thecalendar.domain.usecase.note.*;
 import com.zihowl.thecalendar.domain.usecase.subject.*;
-import com.zihowl.thecalendar.domain.usecase.task.GetTasksUseCase;
-import com.zihowl.thecalendar.domain.usecase.task.UpdateTaskUseCase;
+import com.zihowl.thecalendar.domain.usecase.task.*;
 import com.zihowl.thecalendar.ui.notes.NotesViewModel;
 import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
@@ -48,17 +47,20 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
                     new DeleteSubjectsUseCase(repository)
             );
         }
-        // --- AÑADIR LÓGICA PARA CREAR TASKSVIEWMODEL ---
         if (modelClass.isAssignableFrom(TasksViewModel.class)) {
             return (T) new TasksViewModel(
                     new GetTasksUseCase(repository),
-                    new UpdateTaskUseCase(repository)
+                    new AddTaskUseCase(repository),
+                    new UpdateTaskUseCase(repository),
+                    new DeleteTasksUseCase(repository)
             );
         }
-        // --- AÑADIR LÓGICA PARA CREAR NOTESVIEWMODEL ---
         if (modelClass.isAssignableFrom(NotesViewModel.class)) {
             return (T) new NotesViewModel(
-                    new GetNotesUseCase(repository)
+                    new GetNotesUseCase(repository),
+                    new AddNoteUseCase(repository),
+                    new UpdateNoteUseCase(repository),
+                    new DeleteNotesUseCase(repository)
             );
         }
 
