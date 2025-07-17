@@ -24,7 +24,6 @@ import com.zihowl.thecalendar.data.model.Task;
 import com.zihowl.thecalendar.ui.main.MainActivity;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 public class TasksFragment extends Fragment {
@@ -55,6 +54,13 @@ public class TasksFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Recarga las tareas para reflejar borrados en cascada desde Materias.
+        viewModel.loadTasks();
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         setupMenu();
@@ -82,11 +88,8 @@ public class TasksFragment extends Fragment {
         );
         recyclerView.setAdapter(adapter);
         setupObservers();
-
-        if (Objects.requireNonNull(viewModel.pendingTasks.getValue()).isEmpty() && Objects.requireNonNull(viewModel.completedTasks.getValue()).isEmpty()) {
-            viewModel.loadTasks();
-        }
     }
+
 
     private void setupObservers() {
         // Observadores que reconstruirán la lista cuando cualquier dato cambie
@@ -157,7 +160,7 @@ public class TasksFragment extends Fragment {
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
-                if (!isResumed() || !isCurrentFragment()) return;
+                if (!isResumed() || isNotCurrentFragment()) return;
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedTasks.getValue() != null ? viewModel.selectedTasks.getValue().size() : 0;
                 menu.findItem(R.id.action_add).setVisible(!isSelection);
@@ -167,7 +170,8 @@ public class TasksFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (!isCurrentFragment()) return false;
+                // Corrección aquí
+                if (!isResumed() || isNotCurrentFragment()) return false;
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
                     showDeleteConfirmationDialog();
@@ -199,10 +203,10 @@ public class TasksFragment extends Fragment {
         }
     }
 
-    private boolean isCurrentFragment() {
+    private boolean isNotCurrentFragment() {
         if (getActivity() instanceof MainActivity) {
-            return ((MainActivity) getActivity()).isCurrentTab(1);
+            return !((MainActivity) getActivity()).isCurrentTab(1);
         }
-        return false;
+        return true;
     }
 }

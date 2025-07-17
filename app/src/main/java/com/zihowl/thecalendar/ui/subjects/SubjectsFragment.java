@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.ui.main.MainActivity;
+import java.util.Locale;
 import java.util.Set;
 
 public class SubjectsFragment extends Fragment {
@@ -60,6 +61,12 @@ public class SubjectsFragment extends Fragment {
         setupObservers();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        viewModel.loadSubjects();
+    }
+
     private void setupAdapter() {
         adapter = new SubjectsAdapter(
                 (subject, position) -> {
@@ -76,11 +83,7 @@ public class SubjectsFragment extends Fragment {
     }
 
     private void setupObservers() {
-        viewModel.subjects.observe(getViewLifecycleOwner(), subjects -> {
-            if (subjects != null) {
-                adapter.submitList(subjects);
-            }
-        });
+        viewModel.subjects.observe(getViewLifecycleOwner(), adapter::submitList);
         viewModel.isSelectionMode.observe(getViewLifecycleOwner(), isSelection -> {
             backPressedCallback.setEnabled(isSelection);
             if (!isSelection) {
@@ -109,7 +112,7 @@ public class SubjectsFragment extends Fragment {
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
-                if (!isCurrentFragment()) return;
+                if (isNotCurrentFragment()) return;
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedSubjects.getValue() != null ? viewModel.selectedSubjects.getValue().size() : 0;
                 menu.findItem(R.id.action_add).setVisible(!isSelection);
@@ -119,7 +122,7 @@ public class SubjectsFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (!isCurrentFragment()) return false;
+                if (isNotCurrentFragment()) return false;
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
                     showDeleteConfirmationDialog();
@@ -153,6 +156,7 @@ public class SubjectsFragment extends Fragment {
             if (viewModel.subjectHasContent(subject)) {
                 int[] counts = viewModel.getSubjectContentCount(subject);
                 String message = String.format(
+                        Locale.getDefault(),
                         "Esta materia tiene %d tareas y %d notas asociadas.\n\n¿Qué deseas hacer?",
                         counts[0], counts[1]
                 );
@@ -160,9 +164,7 @@ public class SubjectsFragment extends Fragment {
                         .setTitle("Materia con Contenido")
                         .setMessage(message)
                         .setNeutralButton("Cancelar", null)
-                        .setNegativeButton("Desvincular y Eliminar", (dialog, which) -> {
-                            viewModel.disassociateAndDelete(subject);
-                        })
+                        .setNegativeButton("Desvincular y Eliminar", (dialog, which) -> viewModel.disassociateAndDelete(subject))
                         .setPositiveButton("Eliminar Todo", (dialog, which) -> {
                             // Ahora se llama al método general, que por defecto es en cascada.
                             viewModel.deleteSelectedSubjects();
@@ -177,9 +179,7 @@ public class SubjectsFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Eliminación")
                 .setMessage(message)
-                .setPositiveButton("Eliminar", (dialog, which) -> {
-                    viewModel.deleteSelectedSubjects();
-                })
+                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedSubjects())
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
@@ -193,10 +193,10 @@ public class SubjectsFragment extends Fragment {
         }
     }
 
-    private boolean isCurrentFragment() {
+    private boolean isNotCurrentFragment() {
         if (getActivity() instanceof MainActivity) {
-            return ((MainActivity) getActivity()).isCurrentTab(0);
+            return !((MainActivity) getActivity()).isCurrentTab(0);
         }
-        return false;
+        return true;
     }
 }

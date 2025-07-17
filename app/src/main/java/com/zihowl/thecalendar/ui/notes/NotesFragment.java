@@ -25,7 +25,6 @@ import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.ui.main.MainActivity;
 
-import java.util.Objects;
 import java.util.Set;
 
 public class NotesFragment extends Fragment {
@@ -54,6 +53,13 @@ public class NotesFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Recarga las notas para reflejar borrados en cascada desde Materias.
+        viewModel.loadNotes();
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
@@ -66,10 +72,6 @@ public class NotesFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         setupObservers();
-
-        if (viewModel.notes.getValue() == null) {
-            viewModel.loadNotes();
-        }
     }
 
     private void setupAdapter() {
@@ -117,7 +119,7 @@ public class NotesFragment extends Fragment {
 
             @Override
             public void onPrepareMenu(@NonNull Menu menu) {
-                if (!isCurrentFragment()) return;
+                if (!isResumed() || isNotCurrentFragment()) return;
 
                 boolean isSelection = Boolean.TRUE.equals(viewModel.isSelectionMode.getValue());
                 int selectedCount = viewModel.selectedNotes.getValue() != null ? viewModel.selectedNotes.getValue().size() : 0;
@@ -134,7 +136,7 @@ public class NotesFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                if (!isCurrentFragment()) return false;
+                if (!isResumed() || isNotCurrentFragment()) return false;
 
                 int itemId = menuItem.getItemId();
                 if (itemId == R.id.action_delete) {
@@ -176,10 +178,10 @@ public class NotesFragment extends Fragment {
         }
     }
 
-    private boolean isCurrentFragment() {
+    private boolean isNotCurrentFragment() {
         if (getActivity() instanceof MainActivity) {
-            return ((MainActivity) getActivity()).isCurrentTab(2); // Índice 2 para Notas
+            return !((MainActivity) getActivity()).isCurrentTab(2); // Índice 2 para Notas
         }
-        return false;
+        return true;
     }
 }

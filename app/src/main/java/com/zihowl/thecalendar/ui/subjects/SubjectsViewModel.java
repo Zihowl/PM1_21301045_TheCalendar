@@ -62,16 +62,14 @@ public class SubjectsViewModel extends ViewModel {
     // --- LÓGICA DE BORRADO DEFINITIVA ---
     public void deleteSelectedSubjects() {
         Set<Subject> selected = _selectedSubjects.getValue();
-        List<Subject> currentList = _subjects.getValue();
-
-        if (selected != null && !selected.isEmpty() && currentList != null) {
+        if (selected != null && !selected.isEmpty()) {
             // 1. Ejecutar la operación de borrado en la base de datos
             deleteSubjectsUseCase.execute(new ArrayList<>(selected));
 
-            // 2. Crear una nueva lista para la UI, quitando los elementos borrados
-            List<Subject> newList = new ArrayList<>(currentList);
-            newList.removeAll(selected);
-            _subjects.setValue(newList); // Notificar a la UI con la lista ya modificada
+            // 2. Recargar los datos desde el repositorio
+            // Esto asegura que la lista de la UI refleje el estado real de la BD
+            // y que los contadores de tareas/notas se recalculen correctamente.
+            loadSubjects();
 
             // 3. Limpiar el estado de selección
             finishSelectionMode();
@@ -81,20 +79,18 @@ public class SubjectsViewModel extends ViewModel {
     }
 
     public void disassociateAndDelete(Subject subject) {
-        List<Subject> currentList = _subjects.getValue();
-        if (subject != null && currentList != null) {
+        if (subject != null) {
             // 1. Ejecutar la operación de borrado en la base de datos
             repository.disassociateAndDeleteSubject(subject.getId());
 
-            // 2. Crear una nueva lista para la UI, quitando el elemento borrado
-            List<Subject> newList = new ArrayList<>(currentList);
-            newList.remove(subject);
-            _subjects.setValue(newList); // Notificar a la UI
+            // 2. Recargar los datos para actualizar la UI
+            loadSubjects();
 
             // 3. Limpiar el estado de selección
             finishSelectionMode();
         }
     }
+
 
     // --- MÉTODOS DE AYUDA Y SELECCIÓN (sin cambios) ---
     public boolean subjectHasContent(Subject subject) {
