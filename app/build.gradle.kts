@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("realm-android")
 }
 
 android {
@@ -35,7 +36,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -50,5 +50,6 @@ dependencies {
 
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
-    implementation("io.realm:realm-android-library:10.16.1")
+
+    implementation("io.realm:realm-android-library:10.19.0")
 }

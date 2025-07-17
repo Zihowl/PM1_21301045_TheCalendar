@@ -21,11 +21,13 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.ui.ViewModelFactory;
 import com.zihowl.thecalendar.ui.auth.LoginActivity;
 import com.zihowl.thecalendar.ui.notes.AddNoteDialogFragment;
 import com.zihowl.thecalendar.ui.notes.NotesViewModel;
 import com.zihowl.thecalendar.ui.subjects.AddSubjectDialogFragment;
-import com.zihowl.thecalendar.ui.subjects.SubjectDetailFragment;
+// --- RUTA DE IMPORTACIÓN CORREGIDA ---
+import com.zihowl.thecalendar.ui.subjects.detail.SubjectDetailFragment;
 import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
@@ -37,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private Toolbar toolbar;
     private ActionBarDrawerToggle toggle;
     private TabLayout tabLayout;
-    private View contentMainView; // Referencia para el layout principal
+    private View contentMainView;
 
     private SubjectsViewModel subjectsViewModel;
     private TasksViewModel tasksViewModel;
@@ -63,20 +65,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setupViewModels() {
-        subjectsViewModel = new ViewModelProvider(this).get(SubjectsViewModel.class);
-        tasksViewModel = new ViewModelProvider(this).get(TasksViewModel.class);
-        notesViewModel = new ViewModelProvider(this).get(NotesViewModel.class);
+        ViewModelFactory factory = ViewModelFactory.getInstance();
+        subjectsViewModel = new ViewModelProvider(this, factory).get(SubjectsViewModel.class);
+        tasksViewModel = new ViewModelProvider(this, factory).get(TasksViewModel.class);
+        notesViewModel = new ViewModelProvider(this, factory).get(NotesViewModel.class);
 
         subjectsViewModel.loadSubjects();
         tasksViewModel.loadTasks();
         notesViewModel.loadNotes();
-
-        tasksViewModel.pendingTasks.observe(this, tasks ->
-                subjectsViewModel.updateSubjectStats(tasks, notesViewModel.notes.getValue()));
-        tasksViewModel.completedTasks.observe(this, tasks ->
-                subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notesViewModel.notes.getValue()));
-        notesViewModel.notes.observe(this, notes ->
-                subjectsViewModel.updateSubjectStats(tasksViewModel.pendingTasks.getValue(), notes));
 
         subjectsViewModel.isSelectionMode.observe(this, isSelected -> updateUiLockState());
         tasksViewModel.isSelectionMode.observe(this, isSelected -> updateUiLockState());
@@ -126,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void showSubjectDetail(String subjectName) {
+        // --- CÓDIGO SIN CAMBIOS, PERO AHORA DEBERÍA ENCONTRAR LA CLASE ---
         SubjectDetailFragment fragment = SubjectDetailFragment.newInstance(subjectName);
         getSupportFragmentManager().beginTransaction()
                 .add(R.id.detail_fragment_container, fragment)
@@ -210,15 +207,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private void finishCurrentFragmentSelectionMode() {
-        int currentItem = viewPager.getCurrentItem();
-        switch (currentItem) {
-            case 0: subjectsViewModel.finishSelectionMode(); break;
-            case 1: tasksViewModel.finishSelectionMode(); break;
-            case 2: notesViewModel.finishSelectionMode(); break;
-        }
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
@@ -227,7 +215,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_add) {
+        int itemId = item.getItemId();
+        if (itemId == R.id.action_add) {
             int currentTab = viewPager.getCurrentItem();
             switch (currentTab) {
                 case 0:

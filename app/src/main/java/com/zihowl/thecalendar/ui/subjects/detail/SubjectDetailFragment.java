@@ -1,4 +1,4 @@
-package com.zihowl.thecalendar.ui.subjects;
+package com.zihowl.thecalendar.ui.subjects.detail;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,15 +16,14 @@ import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.data.model.Task;
-import com.zihowl.thecalendar.ui.main.MainActivity;
 import com.zihowl.thecalendar.ui.notes.NotesAdapter;
 import com.zihowl.thecalendar.ui.notes.NotesViewModel;
+import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.TasksAdapter;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SubjectDetailFragment extends Fragment {

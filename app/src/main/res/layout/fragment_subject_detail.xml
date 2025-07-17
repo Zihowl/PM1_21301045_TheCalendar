@@ -7,7 +7,7 @@
     android:background="?android:attr/colorBackground"
     android:clickable="true"
     android:focusable="true"
-    tools:context=".ui.subjects.SubjectDetailFragment">
+    tools:context=".ui.subjects.detail.SubjectDetailFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
