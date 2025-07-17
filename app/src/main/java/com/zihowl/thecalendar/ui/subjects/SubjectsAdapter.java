@@ -80,14 +80,17 @@ public class SubjectsAdapter extends ListAdapter<Subject, SubjectsAdapter.Subjec
     private static final DiffUtil.ItemCallback<Subject> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Subject oldItem, @NonNull Subject newItem) {
-            return oldItem.getName().equals(newItem.getName());
+            // Comparamos por ID.
+            return oldItem.getId() == newItem.getId();
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Subject oldItem, @NonNull Subject newItem) {
             return oldItem.getName().equals(newItem.getName())
                     && Objects.equals(oldItem.getProfessorName(), newItem.getProfessorName())
-                    && oldItem.getSchedule().equals(newItem.getSchedule());
+                    && oldItem.getSchedule().equals(newItem.getSchedule())
+                    && oldItem.getTasksPending() == newItem.getTasksPending()
+                    && oldItem.getNotesCount() == newItem.getNotesCount();
         }
     };
 

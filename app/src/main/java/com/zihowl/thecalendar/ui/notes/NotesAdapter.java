@@ -31,7 +31,6 @@ public class NotesAdapter extends ListAdapter<Note, NotesAdapter.NoteViewHolder>
     public interface OnItemLongClickListener {
         void onItemLongClick(Note note, int position);
     }
-    // ------------------------------------
 
     private Set<Note> selectedItems = Collections.emptySet();
     private final OnItemClickListener clickListener;
@@ -69,12 +68,10 @@ public class NotesAdapter extends ListAdapter<Note, NotesAdapter.NoteViewHolder>
         }
     }
 
-    // --- DIFF_CALLBACK QUE FALTABA ---
     private static final DiffUtil.ItemCallback<Note> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
         @Override
         public boolean areItemsTheSame(@NonNull Note oldItem, @NonNull Note newItem) {
-            // Un identificador único sería ideal aquí, pero el título puede funcionar si es único
-            return oldItem.getTitle().equals(newItem.getTitle()) && Objects.equals(oldItem.getContent(), newItem.getContent());
+            return oldItem.getId() == newItem.getId();
         }
 
         @Override
@@ -84,7 +81,6 @@ public class NotesAdapter extends ListAdapter<Note, NotesAdapter.NoteViewHolder>
                     && Objects.equals(oldItem.getSubjectName(), newItem.getSubjectName());
         }
     };
-    // -----------------------------------
 
     public static class NoteViewHolder extends RecyclerView.ViewHolder {
         public TextView title, content, subjectName;

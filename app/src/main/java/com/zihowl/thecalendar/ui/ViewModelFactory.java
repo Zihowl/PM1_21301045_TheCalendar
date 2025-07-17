@@ -40,6 +40,9 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         if (modelClass.isAssignableFrom(SubjectsViewModel.class)) {
+            // --- CORRECCIÓN AQUÍ ---
+            // Simplemente pasamos los UseCases requeridos por el constructor original.
+            // El propio ViewModel se encargará de obtener la instancia del repositorio.
             return (T) new SubjectsViewModel(
                     new GetSubjectsUseCase(repository),
                     new AddSubjectUseCase(repository),

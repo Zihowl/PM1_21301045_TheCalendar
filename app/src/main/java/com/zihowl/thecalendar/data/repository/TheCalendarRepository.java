@@ -32,7 +32,7 @@ public class TheCalendarRepository {
     }
 
     // --- LÓGICA DE INICIALIZACIÓN ---
-    private void initializeDummyDataIfNeeded() {
+    public void initializeDummyData() {
         if (localDataSource.getAllSubjects().isEmpty()) {
             createDummySubjects().forEach(this::addSubject);
         }
@@ -46,33 +46,52 @@ public class TheCalendarRepository {
 
     // --- MÉTODOS PÚBLICOS ---
     public List<Subject> getSubjects() {
-        initializeDummyDataIfNeeded();
         List<Subject> subjects = localDataSource.getAllSubjects();
-        List<Task> allTasks = localDataSource.getAllTasks();
-        List<Note> allNotes = localDataSource.getAllNotes();
-
         for (Subject subject : subjects) {
-            long taskCount = allTasks.stream().filter(task -> !task.isCompleted() && subject.getName().equals(task.getSubjectName())).count();
-            long noteCount = allNotes.stream().filter(note -> subject.getName().equals(note.getSubjectName())).count();
-            localDataSource.saveSubject(subject); // Guardar para persistir los contadores
+            updateSubjectCounters(subject);
         }
         return localDataSource.getAllSubjects();
     }
 
+    private void updateSubjectCounters(Subject subject) {
+        long pendingTaskCount = localDataSource.getAllTasks().stream()
+                .filter(task -> !task.isCompleted() && subject.getName().equals(task.getSubjectName()))
+                .count();
+        long noteCount = localDataSource.getAllNotes().stream()
+                .filter(note -> subject.getName().equals(note.getSubjectName()))
+                .count();
+        localDataSource.updateSubjectCounters(subject.getId(), (int) pendingTaskCount, (int) noteCount);
+    }
+
     public List<Task> getPendingTasks() {
-        initializeDummyDataIfNeeded();
         return localDataSource.getAllTasks().stream().filter(t -> !t.isCompleted()).collect(Collectors.toList());
     }
 
     public List<Task> getCompletedTasks() {
-        initializeDummyDataIfNeeded();
         return localDataSource.getAllTasks().stream().filter(Task::isCompleted).collect(Collectors.toList());
     }
 
     public List<Note> getNotes() {
-        initializeDummyDataIfNeeded();
         return localDataSource.getAllNotes();
     }
+
+    // --- MÉTODOS PARA LA NUEVA LÓGICA DE BORRADO ---
+    public List<Task> getTasksForSubject(String subjectName) {
+        return localDataSource.getTasksForSubject(subjectName);
+    }
+
+    public List<Note> getNotesForSubject(String subjectName) {
+        return localDataSource.getNotesForSubject(subjectName);
+    }
+
+    public void disassociateAndDeleteSubject(Subject subject) {
+        localDataSource.disassociateAndDeleteSubject(subject);
+    }
+
+    public void cascadeDeleteSubject(Subject subject) {
+        localDataSource.cascadeDeleteSubject(subject);
+    }
+
 
     public void addSubject(Subject subject) { localDataSource.saveSubject(subject); }
     public void addTask(Task task) { localDataSource.saveTask(task); }
@@ -85,7 +104,7 @@ public class TheCalendarRepository {
     public void deleteTasks(List<Task> tasks) { localDataSource.deleteTasks(tasks); }
     public void deleteNotes(List<Note> notes) { localDataSource.deleteNotes(notes); }
 
-    // --- DATOS DUMMY AMPLIADOS ---
+    // --- DATOS DUMMY ---
     private List<Subject> createDummySubjects() {
         ArrayList<Subject> dummyList = new ArrayList<>();
         dummyList.add(new Subject("Cálculo Diferencial", "Dr. Alan Turing", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40"));
@@ -100,7 +119,6 @@ public class TheCalendarRepository {
     private List<Task> createDummyTasks() {
         ArrayList<Task> dummyList = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
-
         Task t1 = new Task("Hacer resumen cap 3", "Resumen del capítulo 3 sobre 'Activity Lifecycle'.", new Date(), "Programación Móvil");
         Task t2 = new Task("Resolver ejercicios pag. 50", "Ejercicios de la página 50, sección de derivadas.", new Date(), "Cálculo Diferencial");
         t2.setCompleted(true);
@@ -111,7 +129,6 @@ public class TheCalendarRepository {
         Task t5 = new Task("Leer paper sobre Redes Neuronales", "Paper 'Attention is All You Need'.", cal.getTime(), "Inteligencia Artificial");
         Task t6 = new Task("Entregar ensayo final", "Ensayo sobre estilos de liderazgo.", new Date(), "Taller de Liderazgo");
         t6.setCompleted(true);
-
         dummyList.add(t1);
         dummyList.add(t2);
         dummyList.add(t3);

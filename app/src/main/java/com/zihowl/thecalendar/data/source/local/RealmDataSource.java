@@ -33,10 +33,25 @@ public class RealmDataSource {
         }
     }
 
+    public void updateSubjectCounters(int subjectId, int taskCount, int noteCount) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                Subject subject = r.where(Subject.class).equalTo("id", subjectId).findFirst();
+                if (subject != null) {
+                    subject.setTasksPending(taskCount);
+                    subject.setNotesCount(noteCount);
+                }
+            });
+        }
+    }
+
     public void deleteSubjects(List<Subject> subjects) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
                 for (Subject subject : subjects) {
+                    // Borrado en cascada por defecto
+                    r.where(Task.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
+                    r.where(Note.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
                     r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
                 }
             });
@@ -95,6 +110,45 @@ public class RealmDataSource {
                 for (Note note : notes) {
                     r.where(Note.class).equalTo("id", note.getId()).findAll().deleteAllFromRealm();
                 }
+            });
+        }
+    }
+
+    // --- MÉTODOS PARA LA NUEVA LÓGICA DE BORRADO ---
+    public List<Task> getTasksForSubject(String subjectName) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            return realm.copyFromRealm(realm.where(Task.class).equalTo("subjectName", subjectName).findAll());
+        }
+    }
+
+    public List<Note> getNotesForSubject(String subjectName) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            return realm.copyFromRealm(realm.where(Note.class).equalTo("subjectName", subjectName).findAll());
+        }
+    }
+
+    public void disassociateAndDeleteSubject(Subject subject) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                RealmResults<Task> tasks = r.where(Task.class).equalTo("subjectName", subject.getName()).findAll();
+                for (Task task : tasks) {
+                    task.setSubjectName(null);
+                }
+                RealmResults<Note> notes = r.where(Note.class).equalTo("subjectName", subject.getName()).findAll();
+                for (Note note : notes) {
+                    note.setSubjectName(null);
+                }
+                r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
+            });
+        }
+    }
+
+    public void cascadeDeleteSubject(Subject subject) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                r.where(Task.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
+                r.where(Note.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
+                r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
             });
         }
     }

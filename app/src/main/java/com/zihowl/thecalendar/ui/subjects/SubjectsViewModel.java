@@ -5,6 +5,8 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.zihowl.thecalendar.data.model.Subject;
+import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
+import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.domain.usecase.subject.AddSubjectUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.DeleteSubjectsUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.GetSubjectsUseCase;
@@ -21,6 +23,7 @@ public class SubjectsViewModel extends ViewModel {
     private final AddSubjectUseCase addSubjectUseCase;
     private final UpdateSubjectUseCase updateSubjectUseCase;
     private final DeleteSubjectsUseCase deleteSubjectsUseCase;
+    private final TheCalendarRepository repository; // Se mantiene para la lógica de borrado complejo
 
     private final MutableLiveData<List<Subject>> _subjects = new MutableLiveData<>();
     public final LiveData<List<Subject>> subjects = _subjects;
@@ -36,6 +39,8 @@ public class SubjectsViewModel extends ViewModel {
         this.addSubjectUseCase = add;
         this.updateSubjectUseCase = update;
         this.deleteSubjectsUseCase = delete;
+        // Obtenemos la instancia del repositorio para usar sus métodos directamente.
+        this.repository = TheCalendarRepository.getInstance(new RealmDataSource());
         loadSubjects();
     }
 
@@ -43,22 +48,44 @@ public class SubjectsViewModel extends ViewModel {
         _subjects.setValue(getSubjectsUseCase.execute());
     }
 
-    // --- CORREGIDO ---
     public void addSubject(String name, String professorName, String schedule) {
         addSubjectUseCase.execute(name, professorName, schedule);
         loadSubjects();
     }
 
-    // --- CORREGIDO ---
     public void updateSubject(Subject originalSubject, String newName, String newProfessorName, String newSchedule) {
         updateSubjectUseCase.execute(originalSubject, newName, newProfessorName, newSchedule);
         loadSubjects();
     }
 
+    /**
+     * Elimina las materias seleccionadas. Este método se usa para el borrado múltiple
+     * y por defecto realiza un borrado en cascada para cada materia.
+     */
     public void deleteSelectedSubjects() {
-        if (_selectedSubjects.getValue() != null) {
+        if (_selectedSubjects.getValue() != null && !_selectedSubjects.getValue().isEmpty()) {
             deleteSubjectsUseCase.execute(new ArrayList<>(_selectedSubjects.getValue()));
         }
+        finishSelectionMode();
+        loadSubjects();
+    }
+
+    /**
+     * Elimina una sola materia pero mantiene sus tareas y notas, desvinculándolas.
+     * @param subject La materia a eliminar.
+     */
+    public void disassociateAndDelete(Subject subject) {
+        repository.disassociateAndDeleteSubject(subject); // <-- LÓGICA RESTAURADA
+        finishSelectionMode();
+        loadSubjects();
+    }
+
+    /**
+     * Elimina una sola materia y todo su contenido asociado (tareas y notas).
+     * @param subject La materia a eliminar en cascada.
+     */
+    public void cascadeDelete(Subject subject) {
+        repository.cascadeDeleteSubject(subject); // <-- LÓGICA RESTAURADA
         finishSelectionMode();
         loadSubjects();
     }

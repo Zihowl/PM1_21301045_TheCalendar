@@ -13,6 +13,7 @@ public class DeleteSubjectsUseCase {
     }
 
     public void execute(List<Subject> subjects) {
+        // Por defecto, un borrado desde el ViewModel siempre será en cascada.
         repository.deleteSubjects(subjects);
     }
 }
