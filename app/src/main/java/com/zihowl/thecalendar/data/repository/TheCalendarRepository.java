@@ -44,23 +44,29 @@ public class TheCalendarRepository {
         }
     }
 
-    // --- MÉTODOS PÚBLICOS ---
+    // --- MÉTODOS "GET" CORREGIDOS ---
+
+    /**
+     * CORRECCIÓN: Este método ahora solo lee y calcula los contadores sobre los datos leídos,
+     * sin escribir de nuevo en la base de datos. Es más rápido y seguro.
+     */
     public List<Subject> getSubjects() {
         List<Subject> subjects = localDataSource.getAllSubjects();
-        for (Subject subject : subjects) {
-            updateSubjectCounters(subject);
-        }
-        return localDataSource.getAllSubjects();
-    }
+        List<Task> allTasks = localDataSource.getAllTasks();
+        List<Note> allNotes = localDataSource.getAllNotes();
 
-    private void updateSubjectCounters(Subject subject) {
-        long pendingTaskCount = localDataSource.getAllTasks().stream()
-                .filter(task -> !task.isCompleted() && subject.getName().equals(task.getSubjectName()))
-                .count();
-        long noteCount = localDataSource.getAllNotes().stream()
-                .filter(note -> subject.getName().equals(note.getSubjectName()))
-                .count();
-        localDataSource.updateSubjectCounters(subject.getId(), (int) pendingTaskCount, (int) noteCount);
+        // Asigna los contadores a los objetos en memoria, sin modificar la BD.
+        for (Subject subject : subjects) {
+            long pendingTaskCount = allTasks.stream()
+                    .filter(task -> !task.isCompleted() && subject.getName().equals(task.getSubjectName()))
+                    .count();
+            long noteCount = allNotes.stream()
+                    .filter(note -> subject.getName().equals(note.getSubjectName()))
+                    .count();
+            subject.setTasksPending((int) pendingTaskCount);
+            subject.setNotesCount((int) noteCount);
+        }
+        return subjects;
     }
 
     public List<Task> getPendingTasks() {
@@ -75,7 +81,6 @@ public class TheCalendarRepository {
         return localDataSource.getAllNotes();
     }
 
-    // --- MÉTODOS PARA LA NUEVA LÓGICA DE BORRADO ---
     public List<Task> getTasksForSubject(String subjectName) {
         return localDataSource.getTasksForSubject(subjectName);
     }
@@ -84,27 +89,25 @@ public class TheCalendarRepository {
         return localDataSource.getNotesForSubject(subjectName);
     }
 
-    public void disassociateAndDeleteSubject(Subject subject) {
-        localDataSource.disassociateAndDeleteSubject(subject);
+    // --- MÉTODOS DE ESCRITURA / BORRADO
+
+    public void disassociateAndDeleteSubject(int subjectId) {
+        localDataSource.disassociateAndDeleteSubject(subjectId);
     }
 
-    public void cascadeDeleteSubject(Subject subject) {
-        localDataSource.cascadeDeleteSubject(subject);
+    public void cascadeDeleteSubjects(List<Integer> subjectIds) {
+        localDataSource.cascadeDeleteSubjects(subjectIds);
     }
-
 
     public void addSubject(Subject subject) { localDataSource.saveSubject(subject); }
     public void addTask(Task task) { localDataSource.saveTask(task); }
     public void addNote(Note note) { localDataSource.saveNote(note); }
-
     public void updateTask(Task task) { localDataSource.saveTask(task); }
     public void updateNote(Note note) { localDataSource.saveNote(note); }
-
-    public void deleteSubjects(List<Subject> subjects) { localDataSource.deleteSubjects(subjects); }
     public void deleteTasks(List<Task> tasks) { localDataSource.deleteTasks(tasks); }
     public void deleteNotes(List<Note> notes) { localDataSource.deleteNotes(notes); }
 
-    // --- DATOS DUMMY ---
+    // --- DATOS DUMMY (sin cambios) ---
     private List<Subject> createDummySubjects() {
         ArrayList<Subject> dummyList = new ArrayList<>();
         dummyList.add(new Subject("Cálculo Diferencial", "Dr. Alan Turing", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40"));

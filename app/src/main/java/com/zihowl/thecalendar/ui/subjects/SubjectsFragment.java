@@ -20,13 +20,8 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.zihowl.thecalendar.R;
-import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
-import com.zihowl.thecalendar.data.model.Task;
-import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
-import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.ui.main.MainActivity;
-import java.util.List;
 import java.util.Set;
 
 public class SubjectsFragment extends Fragment {
@@ -34,13 +29,11 @@ public class SubjectsFragment extends Fragment {
     private SubjectsViewModel viewModel;
     private SubjectsAdapter adapter;
     private OnBackPressedCallback backPressedCallback;
-    private TheCalendarRepository repository; // <-- Instancia del Repositorio
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity()).get(SubjectsViewModel.class);
-        repository = TheCalendarRepository.getInstance(new RealmDataSource()); // <-- Inicialización
 
         backPressedCallback = new OnBackPressedCallback(false) {
             @Override
@@ -153,15 +146,15 @@ public class SubjectsFragment extends Fragment {
         Set<Subject> selectedSubjects = viewModel.selectedSubjects.getValue();
         if (selectedSubjects == null || selectedSubjects.isEmpty()) return;
 
+        // Caso 1: Se selecciona una sola materia
         if (selectedSubjects.size() == 1) {
             Subject subject = selectedSubjects.iterator().next();
-            List<Task> tasks = repository.getTasksForSubject(subject.getName());
-            List<Note> notes = repository.getNotesForSubject(subject.getName());
-
-            if (!tasks.isEmpty() || !notes.isEmpty()) {
+            // El ViewModel ahora determina si hay contenido
+            if (viewModel.subjectHasContent(subject)) {
+                int[] counts = viewModel.getSubjectContentCount(subject);
                 String message = String.format(
                         "Esta materia tiene %d tareas y %d notas asociadas.\n\n¿Qué deseas hacer?",
-                        tasks.size(), notes.size()
+                        counts[0], counts[1]
                 );
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Materia con Contenido")
@@ -171,13 +164,15 @@ public class SubjectsFragment extends Fragment {
                             viewModel.disassociateAndDelete(subject);
                         })
                         .setPositiveButton("Eliminar Todo", (dialog, which) -> {
-                            viewModel.cascadeDelete(subject);
+                            // Ahora se llama al método general, que por defecto es en cascada.
+                            viewModel.deleteSelectedSubjects();
                         })
                         .show();
                 return;
             }
         }
 
+        // Caso 2: Se seleccionan múltiples materias o una sin contenido.
         String message = "¿Estás seguro de que quieres eliminar las " + selectedSubjects.size() + " materias seleccionadas y todo su contenido asociado?";
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Eliminación")

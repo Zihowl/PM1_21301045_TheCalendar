@@ -4,7 +4,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
+import com.zihowl.thecalendar.data.model.Task;
 import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.domain.usecase.subject.AddSubjectUseCase;
@@ -23,7 +25,7 @@ public class SubjectsViewModel extends ViewModel {
     private final AddSubjectUseCase addSubjectUseCase;
     private final UpdateSubjectUseCase updateSubjectUseCase;
     private final DeleteSubjectsUseCase deleteSubjectsUseCase;
-    private final TheCalendarRepository repository; // Se mantiene para la lógica de borrado complejo
+    private final TheCalendarRepository repository;
 
     private final MutableLiveData<List<Subject>> _subjects = new MutableLiveData<>();
     public final LiveData<List<Subject>> subjects = _subjects;
@@ -39,7 +41,6 @@ public class SubjectsViewModel extends ViewModel {
         this.addSubjectUseCase = add;
         this.updateSubjectUseCase = update;
         this.deleteSubjectsUseCase = delete;
-        // Obtenemos la instancia del repositorio para usar sus métodos directamente.
         this.repository = TheCalendarRepository.getInstance(new RealmDataSource());
         loadSubjects();
     }
@@ -58,36 +59,54 @@ public class SubjectsViewModel extends ViewModel {
         loadSubjects();
     }
 
-    /**
-     * Elimina las materias seleccionadas. Este método se usa para el borrado múltiple
-     * y por defecto realiza un borrado en cascada para cada materia.
-     */
+    // --- LÓGICA DE BORRADO DEFINITIVA ---
     public void deleteSelectedSubjects() {
-        if (_selectedSubjects.getValue() != null && !_selectedSubjects.getValue().isEmpty()) {
-            deleteSubjectsUseCase.execute(new ArrayList<>(_selectedSubjects.getValue()));
+        Set<Subject> selected = _selectedSubjects.getValue();
+        List<Subject> currentList = _subjects.getValue();
+
+        if (selected != null && !selected.isEmpty() && currentList != null) {
+            // 1. Ejecutar la operación de borrado en la base de datos
+            deleteSubjectsUseCase.execute(new ArrayList<>(selected));
+
+            // 2. Crear una nueva lista para la UI, quitando los elementos borrados
+            List<Subject> newList = new ArrayList<>(currentList);
+            newList.removeAll(selected);
+            _subjects.setValue(newList); // Notificar a la UI con la lista ya modificada
+
+            // 3. Limpiar el estado de selección
+            finishSelectionMode();
+        } else {
+            finishSelectionMode();
         }
-        finishSelectionMode();
-        loadSubjects();
     }
 
-    /**
-     * Elimina una sola materia pero mantiene sus tareas y notas, desvinculándolas.
-     * @param subject La materia a eliminar.
-     */
     public void disassociateAndDelete(Subject subject) {
-        repository.disassociateAndDeleteSubject(subject); // <-- LÓGICA RESTAURADA
-        finishSelectionMode();
-        loadSubjects();
+        List<Subject> currentList = _subjects.getValue();
+        if (subject != null && currentList != null) {
+            // 1. Ejecutar la operación de borrado en la base de datos
+            repository.disassociateAndDeleteSubject(subject.getId());
+
+            // 2. Crear una nueva lista para la UI, quitando el elemento borrado
+            List<Subject> newList = new ArrayList<>(currentList);
+            newList.remove(subject);
+            _subjects.setValue(newList); // Notificar a la UI
+
+            // 3. Limpiar el estado de selección
+            finishSelectionMode();
+        }
     }
 
-    /**
-     * Elimina una sola materia y todo su contenido asociado (tareas y notas).
-     * @param subject La materia a eliminar en cascada.
-     */
-    public void cascadeDelete(Subject subject) {
-        repository.cascadeDeleteSubject(subject); // <-- LÓGICA RESTAURADA
-        finishSelectionMode();
-        loadSubjects();
+    // --- MÉTODOS DE AYUDA Y SELECCIÓN (sin cambios) ---
+    public boolean subjectHasContent(Subject subject) {
+        List<Task> tasks = repository.getTasksForSubject(subject.getName());
+        List<Note> notes = repository.getNotesForSubject(subject.getName());
+        return (tasks != null && !tasks.isEmpty()) || (notes != null && !notes.isEmpty());
+    }
+
+    public int[] getSubjectContentCount(Subject subject) {
+        List<Task> tasks = repository.getTasksForSubject(subject.getName());
+        List<Note> notes = repository.getNotesForSubject(subject.getName());
+        return new int[]{tasks != null ? tasks.size() : 0, notes != null ? notes.size() : 0};
     }
 
     public void toggleSelection(Subject subject) {

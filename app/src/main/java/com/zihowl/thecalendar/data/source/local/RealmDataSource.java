@@ -33,6 +33,13 @@ public class RealmDataSource {
         }
     }
 
+    public Subject getSubjectById(int id) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            Subject subject = realm.where(Subject.class).equalTo("id", id).findFirst();
+            return subject != null ? realm.copyFromRealm(subject) : null;
+        }
+    }
+
     public void updateSubjectCounters(int subjectId, int taskCount, int noteCount) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
@@ -40,19 +47,6 @@ public class RealmDataSource {
                 if (subject != null) {
                     subject.setTasksPending(taskCount);
                     subject.setNotesCount(noteCount);
-                }
-            });
-        }
-    }
-
-    public void deleteSubjects(List<Subject> subjects) {
-        try (Realm realm = Realm.getDefaultInstance()) {
-            realm.executeTransaction(r -> {
-                for (Subject subject : subjects) {
-                    // Borrado en cascada por defecto
-                    r.where(Task.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
-                    r.where(Note.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
-                    r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
                 }
             });
         }
@@ -114,7 +108,7 @@ public class RealmDataSource {
         }
     }
 
-    // --- MÉTODOS PARA LA NUEVA LÓGICA DE BORRADO ---
+    // --- MÉTODOS PARA LA LÓGICA DE BORRADO ---
     public List<Task> getTasksForSubject(String subjectName) {
         try (Realm realm = Realm.getDefaultInstance()) {
             return realm.copyFromRealm(realm.where(Task.class).equalTo("subjectName", subjectName).findAll());
@@ -127,28 +121,46 @@ public class RealmDataSource {
         }
     }
 
-    public void disassociateAndDeleteSubject(Subject subject) {
+    public void disassociateAndDeleteSubject(int subjectId) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
-                RealmResults<Task> tasks = r.where(Task.class).equalTo("subjectName", subject.getName()).findAll();
-                for (Task task : tasks) {
-                    task.setSubjectName(null);
+                Subject managedSubject = r.where(Subject.class).equalTo("id", subjectId).findFirst();
+                if (managedSubject != null) {
+                    String subjectName = managedSubject.getName();
+
+                    // Desvincular tareas y notas
+                    RealmResults<Task> tasks = r.where(Task.class).equalTo("subjectName", subjectName).findAll();
+                    for (Task task : tasks) {
+                        task.setSubjectName(null);
+                    }
+                    RealmResults<Note> notes = r.where(Note.class).equalTo("subjectName", subjectName).findAll();
+                    for (Note note : notes) {
+                        note.setSubjectName(null);
+                    }
+
+                    // Eliminar la materia
+                    managedSubject.deleteFromRealm();
                 }
-                RealmResults<Note> notes = r.where(Note.class).equalTo("subjectName", subject.getName()).findAll();
-                for (Note note : notes) {
-                    note.setSubjectName(null);
-                }
-                r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
             });
         }
     }
 
-    public void cascadeDeleteSubject(Subject subject) {
+    public void cascadeDeleteSubjects(List<Integer> subjectIds) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
-                r.where(Task.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
-                r.where(Note.class).equalTo("subjectName", subject.getName()).findAll().deleteAllFromRealm();
-                r.where(Subject.class).equalTo("id", subject.getId()).findAll().deleteAllFromRealm();
+                for (Integer id : subjectIds) {
+                    Subject managedSubject = r.where(Subject.class).equalTo("id", id).findFirst();
+                    if (managedSubject != null) {
+                        String subjectName = managedSubject.getName();
+
+                        // Borrar tareas y notas asociadas
+                        r.where(Task.class).equalTo("subjectName", subjectName).findAll().deleteAllFromRealm();
+                        r.where(Note.class).equalTo("subjectName", subjectName).findAll().deleteAllFromRealm();
+
+                        // Eliminar la materia
+                        managedSubject.deleteFromRealm();
+                    }
+                }
             });
         }
     }
