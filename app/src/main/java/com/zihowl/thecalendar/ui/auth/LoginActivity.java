@@ -86,12 +86,10 @@ public class LoginActivity extends AppCompatActivity {
         Properties properties = new Properties();
         properties.setProperty("last_logged_user", username);
         try {
-            // Usa openFileOutput para obtener un stream seguro al almacenamiento interno
             FileOutputStream fos = openFileOutput("config.properties", MODE_PRIVATE);
             properties.store(fos, "User Configuration");
             fos.close();
         } catch (Exception e) {
-            e.printStackTrace(); // Manejar el error apropiadamente en una app real
         }
     }
 
@@ -102,14 +100,11 @@ public class LoginActivity extends AppCompatActivity {
     private void loadUserFromProperties() {
         Properties properties = new Properties();
         try {
-            // Usa openFileInput para leer el archivo del almacenamiento interno
             FileInputStream fis = openFileInput("config.properties");
             properties.load(fis);
             fis.close();
-            // Obtiene la propiedad "last_logged_user", con "" como valor por defecto si no existe
             String lastUser = properties.getProperty("last_logged_user", "");
             usernameEditText.setText(lastUser);
-            // Opcional: muestra un Toast para confirmar que se cargó el usuario
             if (!lastUser.isEmpty()) {
                 Toast.makeText(this, "Último usuario: " + lastUser, Toast.LENGTH_SHORT).show();
             }
