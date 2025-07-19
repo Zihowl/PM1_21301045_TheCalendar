@@ -87,10 +87,12 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
         builder.setView(view)
                 .setTitle(dialogTitle)
-                .setPositiveButton("Guardar", null)
+                .setPositiveButton("Guardar", null) // Se configura el listener abajo
                 .setNegativeButton("Cancelar", (dialog, id) -> dismiss());
 
         AlertDialog dialog = builder.create();
+
+        // Se usa setOnShowListener para evitar que el diálogo se cierre automáticamente al presionar "Guardar"
         dialog.setOnShowListener(dialogInterface -> {
             Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             button.setOnClickListener(v -> saveSubject());
@@ -99,7 +101,6 @@ public class AddSubjectDialogFragment extends DialogFragment {
         return dialog;
     }
 
-    // --- ¡MÉTODO RESTAURADO! ---
     private void addScheduleBlock(@Nullable String day, @Nullable String startTime24h, @Nullable String endTime24h) {
         View blockView = getLayoutInflater().inflate(R.layout.item_schedule_block, containerScheduleBlocks, false);
 
@@ -124,11 +125,11 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
         if (startTime24h != null) {
             textViewStartTime.setText(formatTo12Hour(startTime24h));
-            textViewStartTime.setTag(startTime24h);
+            textViewStartTime.setTag(startTime24h); // Guardamos la hora en formato 24h en el tag
         }
         if (endTime24h != null) {
             textViewEndTime.setText(formatTo12Hour(endTime24h));
-            textViewEndTime.setTag(endTime24h);
+            textViewEndTime.setTag(endTime24h); // Guardamos la hora en formato 24h en el tag
         }
 
         containerScheduleBlocks.addView(blockView);
@@ -165,16 +166,22 @@ public class AddSubjectDialogFragment extends DialogFragment {
 
         String professorName = Objects.requireNonNull(editTextProfessorName.getText()).toString().trim();
         String scheduleString = buildScheduleString();
-        if (scheduleString == null) return;
+
+        // Si el horario es inválido, buildScheduleString ya mostró un Toast y devolvió null.
+        if (scheduleString == null) {
+            return;
+        }
 
         if (isEditing) {
             viewModel.updateSubject(originalSubject, name, professorName, scheduleString);
+            Toast.makeText(getContext(), "Materia '" + name + "' actualizada", Toast.LENGTH_SHORT).show();
         } else {
-            viewModel.addSubject(name, professorName, scheduleString);
+            // Pasamos el contexto para que el ViewModel pueda mostrar el Toast
+            viewModel.addSubject(name, professorName, scheduleString, requireContext());
         }
 
         viewModel.finishSelectionMode();
-        dismiss();
+        dismiss(); // Cierra el diálogo solo si todo es correcto
     }
 
     @Nullable
@@ -198,7 +205,7 @@ public class AddSubjectDialogFragment extends DialogFragment {
                 Date startTime = sdf.parse(startTimeStr);
                 Date endTime = sdf.parse(endTimeStr);
                 if (startTime != null && endTime != null && startTime.after(endTime)) {
-                    Toast.makeText(getContext(), "La hora de fin no puede ser anterior al inicio.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "La hora de fin no puede ser anterior a la de inicio.", Toast.LENGTH_LONG).show();
                     return null;
                 }
             } catch (ParseException e) {
@@ -215,20 +222,21 @@ public class AddSubjectDialogFragment extends DialogFragment {
         return scheduleBuilder.toString();
     }
 
-    // --- ¡MÉTODO RESTAURADO! ---
     private void populateScheduleBlocksFromString(String schedule) {
         if (schedule == null || schedule.isEmpty()) return;
+        containerScheduleBlocks.removeAllViews(); // Limpiamos vistas previas
         for (String line : schedule.split("\n")) {
             try {
                 String[] parts = line.split(" ");
                 String day = parts[0];
                 String[] times = line.substring(day.length()).trim().split(" - ");
-                addScheduleBlock(day, times[0], times[1]); // <-- Esta línea ya no dará error
+                addScheduleBlock(day, times[0], times[1]);
             } catch (Exception ignored) {}
         }
     }
 
     private String formatTo12Hour(String time24h) {
+        if (time24h == null || time24h.isEmpty()) return "Hora";
         try {
             SimpleDateFormat sdf24 = new SimpleDateFormat("HH:mm", Locale.getDefault());
             SimpleDateFormat sdf12 = new SimpleDateFormat("hh:mm a", Locale.getDefault());
