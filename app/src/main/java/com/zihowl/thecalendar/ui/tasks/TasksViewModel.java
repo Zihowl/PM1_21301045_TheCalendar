@@ -1,5 +1,7 @@
 package com.zihowl.thecalendar.ui.tasks;
 
+import android.content.Context;
+import android.widget.Toast;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -53,18 +55,20 @@ public class TasksViewModel extends ViewModel {
         _completedTasks.setValue(getTasksUseCase.getCompleted());
     }
 
-    public void addTask(Task task) {
+    public void addTask(Task task, Context context) {
         addTaskUseCase.execute(task);
         loadTasks();
+        Toast.makeText(context, "Tarea '" + task.getTitle() + "' añadida", Toast.LENGTH_SHORT).show();
     }
 
-    public void updateTask(Task originalTask, String newTitle, String newDescription, String newSubjectName, Date newDate) {
+    public void updateTask(Task originalTask, String newTitle, String newDescription, String newSubjectName, Date newDate, Context context) {
         originalTask.setTitle(newTitle);
         originalTask.setDescription(newDescription);
         originalTask.setSubjectName(newSubjectName);
         originalTask.setDueDate(newDate);
         updateTaskUseCase.execute(originalTask);
         loadTasks();
+        Toast.makeText(context, "Tarea actualizada", Toast.LENGTH_SHORT).show();
     }
 
     public void toggleTaskCompletion(Task task) {
@@ -73,10 +77,12 @@ public class TasksViewModel extends ViewModel {
         loadTasks();
     }
 
-    public void deleteSelectedTasks() {
+    public void deleteSelectedTasks(Context context) {
+        int count = _selectedTasks.getValue() != null ? _selectedTasks.getValue().size() : 0;
         deleteTasksUseCase.execute(new ArrayList<>(_selectedTasks.getValue()));
         finishSelectionMode();
         loadTasks();
+        Toast.makeText(context, count + (count > 1 ? " tareas eliminadas" : " tarea eliminada"), Toast.LENGTH_SHORT).show();
     }
 
     public void toggleSelection(Task task) {

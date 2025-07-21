@@ -164,7 +164,7 @@ public class NotesFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Eliminación")
                 .setMessage("¿Estás seguro de que quieres eliminar las notas seleccionadas?")
-                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedNotes())
+                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedNotes(requireContext()))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }

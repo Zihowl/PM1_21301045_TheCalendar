@@ -3,7 +3,6 @@ package com.zihowl.thecalendar.ui.notes;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -130,9 +129,9 @@ public class AddNoteDialogFragment extends DialogFragment {
         }
 
         if (isEditing) {
-            viewModel.updateNote(originalNote, title, content, subjectName);
+            viewModel.updateNote(originalNote, title, content, subjectName, requireContext());
         } else {
-            viewModel.addNote(new Note(title, content, subjectName));
+            viewModel.addNote(new Note(title, content, subjectName), requireContext());
         }
 
         viewModel.finishSelectionMode();

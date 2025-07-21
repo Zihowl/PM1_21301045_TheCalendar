@@ -1,5 +1,7 @@
 package com.zihowl.thecalendar.data.model;
 
+import com.google.gson.annotations.SerializedName;
+
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
@@ -9,7 +11,9 @@ import java.util.Objects;
 public class Subject extends RealmObject implements Serializable {
     @PrimaryKey
     private int id;
+    @SerializedName("nombre") // Mapea el campo 'nombre' del JSON a la variable 'name'
     private String name;
+    @SerializedName("profesor") // Mapea 'profesor' a 'professorName'
     private String professorName;
     private String schedule;
     private int tasksPending;

@@ -64,23 +64,26 @@ public class SubjectsViewModel extends ViewModel {
         loadSubjects();
     }
 
-    public void deleteSelectedSubjects() {
+    public void deleteSelectedSubjects(Context context) {
         Set<Subject> selected = _selectedSubjects.getValue();
         if (selected != null && !selected.isEmpty()) {
+            int count = selected.size();
             deleteSubjectsUseCase.execute(new ArrayList<>(selected));
             loadSubjects();
             finishSelectionMode();
+            Toast.makeText(context, count + (count > 1 ? " materias eliminadas" : " materia eliminada"), Toast.LENGTH_SHORT).show();
         } else {
             finishSelectionMode();
         }
     }
 
-    // El resto de los métodos de selección, etc. se mantienen igual
-    public void disassociateAndDelete(Subject subject) {
+    public void disassociateAndDelete(Subject subject, Context context) {
         if (subject != null) {
+            String name = subject.getName();
             repository.disassociateAndDeleteSubject(subject.getId());
             loadSubjects();
             finishSelectionMode();
+            Toast.makeText(context, "Materia '" + name + "' eliminada", Toast.LENGTH_SHORT).show();
         }
     }
 

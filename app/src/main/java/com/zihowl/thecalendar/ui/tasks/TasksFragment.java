@@ -189,7 +189,7 @@ public class TasksFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Eliminación")
                 .setMessage("¿Estás seguro de que quieres eliminar las tareas seleccionadas?")
-                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedTasks())
+                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedTasks(requireContext()))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }

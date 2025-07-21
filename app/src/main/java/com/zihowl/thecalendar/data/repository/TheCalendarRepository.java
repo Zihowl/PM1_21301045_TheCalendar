@@ -9,7 +9,6 @@ import com.zihowl.thecalendar.data.source.remote.ApiService;
 import com.zihowl.thecalendar.data.source.remote.RetrofitClient;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,52 +53,50 @@ public class TheCalendarRepository {
         }
     }
 
-    // --- MÉTODOS "GET" (SIN CAMBIOS RESPECTO A LA VERSIÓN ANTERIOR) ---
     public List<Subject> getSubjects() {
         Log.d("Repo", "Intentando obtener materias de la API...");
+        // Hacemos la llamada a la API
         remoteDataSource.getSubjects().enqueue(new Callback<List<Subject>>() {
             @Override
             public void onResponse(Call<List<Subject>> call, Response<List<Subject>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     Log.d("Repo", "Materias obtenidas de la API. Actualizando BD local.");
+                    // Guardamos las materias recibidas en la base de datos local (Realm)
                     response.body().forEach(localDataSource::saveSubject);
+                } else {
+                    Log.e("Repo", "Error al obtener materias: " + response.code());
                 }
             }
+
             @Override
             public void onFailure(Call<List<Subject>> call, Throwable t) {
-                Log.e("Repo", "Error al obtener materias de la API: " + t.getMessage());
+                // Si falla la conexión, la app seguirá funcionando con los datos locales
+                Log.e("Repo", "Fallo de red al obtener materias: " + t.getMessage());
             }
         });
 
-        List<Subject> subjects = localDataSource.getAllSubjects();
-        List<Task> allTasks = localDataSource.getAllTasks();
-        List<Note> allNotes = localDataSource.getAllNotes();
-
-        for (Subject subject : subjects) {
-            long pendingTaskCount = allTasks.stream()
-                    .filter(task -> !task.isCompleted() && subject.getName().equals(task.getSubjectName()))
-                    .count();
-            long noteCount = allNotes.stream()
-                    .filter(note -> subject.getName().equals(note.getSubjectName()))
-                    .count();
-            subject.setTasksPending((int) pendingTaskCount);
-            subject.setNotesCount((int) noteCount);
-        }
-        return subjects;
+        // La app siempre devuelve los datos locales para funcionar offline (RQF-10)
+        return localDataSource.getAllSubjects();
     }
 
     // --- MÉTODOS "ADD" MODIFICADOS ---
     public void addSubject(Subject subject) {
-        localDataSource.saveSubject(subject); // Guardado local primero
+        // Primero guardamos en la base de datos local para una respuesta rápida en la UI
+        localDataSource.saveSubject(subject);
+
+        // Luego, intentamos crear la materia en el servidor
         remoteDataSource.createSubject(subject).enqueue(new Callback<Subject>() {
             @Override
             public void onResponse(Call<Subject> call, Response<Subject> response) {
                 if (response.isSuccessful()) {
                     Log.d("Repo", "Materia creada en el servidor con éxito.");
+                    // Opcional: podrías actualizar el objeto local con datos del servidor si es necesario
                 } else {
                     Log.e("Repo", "Error al crear la materia en el servidor: " + response.code());
+                    // Aquí podrías implementar una lógica para reintentar más tarde
                 }
             }
+
             @Override
             public void onFailure(Call<Subject> call, Throwable t) {
                 Log.e("Repo", "Fallo de red al crear la materia: " + t.getMessage());

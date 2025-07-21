@@ -164,10 +164,9 @@ public class SubjectsFragment extends Fragment {
                         .setTitle("Materia con Contenido")
                         .setMessage(message)
                         .setNeutralButton("Cancelar", null)
-                        .setNegativeButton("Desvincular y Eliminar", (dialog, which) -> viewModel.disassociateAndDelete(subject))
+                        .setNegativeButton("Desvincular y Eliminar", (dialog, which) -> viewModel.disassociateAndDelete(subject, requireContext()))
                         .setPositiveButton("Eliminar Todo", (dialog, which) -> {
-                            // Ahora se llama al método general, que por defecto es en cascada.
-                            viewModel.deleteSelectedSubjects();
+                            viewModel.deleteSelectedSubjects(requireContext());
                         })
                         .show();
                 return;
@@ -179,7 +178,7 @@ public class SubjectsFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirmar Eliminación")
                 .setMessage(message)
-                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedSubjects())
+                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.deleteSelectedSubjects(requireContext()))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }

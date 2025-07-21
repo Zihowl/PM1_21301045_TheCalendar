@@ -1,5 +1,7 @@
 package com.zihowl.thecalendar.ui.notes;
 
+import android.content.Context;
+import android.widget.Toast;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -40,23 +42,27 @@ public class NotesViewModel extends ViewModel {
 
     public void loadNotes() { _notes.setValue(getNotesUseCase.execute()); }
 
-    public void addNote(Note note) {
+    public void addNote(Note note, Context context) {
         addNoteUseCase.execute(note);
         loadNotes();
+        Toast.makeText(context, "Nota '" + note.getTitle() + "' creada", Toast.LENGTH_SHORT).show();
     }
 
-    public void updateNote(Note note, String newTitle, String newContent, String newSubjectName) {
+    public void updateNote(Note note, String newTitle, String newContent, String newSubjectName, Context context) {
         note.setTitle(newTitle);
         note.setContent(newContent);
         note.setSubjectName(newSubjectName);
         updateNoteUseCase.execute(note);
         loadNotes();
+        Toast.makeText(context, "Nota actualizada", Toast.LENGTH_SHORT).show();
     }
 
-    public void deleteSelectedNotes() {
+    public void deleteSelectedNotes(Context context) {
+        int count = _selectedNotes.getValue() != null ? _selectedNotes.getValue().size() : 0;
         deleteNotesUseCase.execute(new ArrayList<>(_selectedNotes.getValue()));
         finishSelectionMode();
         loadNotes();
+        Toast.makeText(context, count + (count > 1 ? " notas eliminadas" : " nota eliminada"), Toast.LENGTH_SHORT).show();
     }
 
     public void toggleSelection(Note note) {

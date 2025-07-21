@@ -3,10 +3,8 @@ package com.zihowl.thecalendar.ui.tasks;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -173,9 +171,9 @@ public class AddTaskDialogFragment extends DialogFragment {
         }
 
         if (isEditing) {
-            tasksViewModel.updateTask(originalTask, title, description, subjectName, selectedDate);
+            tasksViewModel.updateTask(originalTask, title, description, subjectName, selectedDate, requireContext());
         } else {
-            tasksViewModel.addTask(new Task(title, description, selectedDate, subjectName));
+            tasksViewModel.addTask(new Task(title, description, selectedDate, subjectName), requireContext());
         }
 
         tasksViewModel.finishSelectionMode();

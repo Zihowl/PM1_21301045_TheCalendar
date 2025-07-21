@@ -11,7 +11,7 @@ public class RetrofitClient {
 
     // URL base para las peticiones. Cuando tengas tu backend, la cambiarás.
     // Usamos una URL pública de prueba por ahora.
-    private static final String BASE_URL = "https://jsonplaceholder.typicode.com/";
+    private static final String BASE_URL = "http://192.168.0.34:5000/api/";
 
     public static Retrofit getClient() {
         if (retrofit == null) {
