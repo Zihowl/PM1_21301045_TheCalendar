@@ -40,7 +40,7 @@ public class TheCalendarRepository {
         return INSTANCE;
     }
 
-    // --- LÓGICA DE INICIALIZACIÓN (SIN CAMBIOS) ---
+    // --- LÓGICA DE INICIALIZACIÓN (DATOS DUMMY) ---
     public void initializeDummyData() {
         if (localDataSource.getAllSubjects().isEmpty()) {
             createDummySubjects().forEach(this::addSubject);
@@ -53,9 +53,14 @@ public class TheCalendarRepository {
         }
     }
 
+    // --- MÉTODOS GET CON SINCRONIZACIÓN ---
+
+    /**
+     * Obtiene las materias. Primero intenta sincronizar desde la API
+     * y siempre devuelve la lista desde la base de datos local.
+     */
     public List<Subject> getSubjects() {
         Log.d("Repo", "Intentando obtener materias de la API...");
-        // Hacemos la llamada a la API
         remoteDataSource.getSubjects().enqueue(new Callback<List<Subject>>() {
             @Override
             public void onResponse(Call<List<Subject>> call, Response<List<Subject>> response) {
@@ -70,33 +75,73 @@ public class TheCalendarRepository {
 
             @Override
             public void onFailure(Call<List<Subject>> call, Throwable t) {
-                // Si falla la conexión, la app seguirá funcionando con los datos locales
                 Log.e("Repo", "Fallo de red al obtener materias: " + t.getMessage());
             }
         });
-
         // La app siempre devuelve los datos locales para funcionar offline (RQF-10)
         return localDataSource.getAllSubjects();
     }
 
-    // --- MÉTODOS "ADD" MODIFICADOS ---
-    public void addSubject(Subject subject) {
-        // Primero guardamos en la base de datos local para una respuesta rápida en la UI
-        localDataSource.saveSubject(subject);
+    /**
+     * Obtiene todas las tareas. Intenta sincronizar desde la API
+     * y siempre devuelve la lista local.
+     */
+    public List<Task> getAllTasks() {
+        remoteDataSource.getTasks().enqueue(new Callback<List<Task>>() {
+            @Override
+            public void onResponse(Call<List<Task>> call, Response<List<Task>> response) {
+                if(response.isSuccessful() && response.body() != null) {
+                    Log.d("Repo", "Tareas obtenidas de la API.");
+                    response.body().forEach(localDataSource::saveTask);
+                } else {
+                    Log.e("Repo", "Error al obtener tareas de la API: " + response.code());
+                }
+            }
+            @Override
+            public void onFailure(Call<List<Task>> call, Throwable t) {
+                Log.e("Repo", "Fallo de red al obtener tareas: " + t.getMessage());
+            }
+        });
+        return localDataSource.getAllTasks();
+    }
 
-        // Luego, intentamos crear la materia en el servidor
+    /**
+     * Obtiene todas las notas. Intenta sincronizar desde la API
+     * y siempre devuelve la lista local.
+     */
+    public List<Note> getNotes() {
+        remoteDataSource.getNotes().enqueue(new Callback<List<Note>>() {
+            @Override
+            public void onResponse(Call<List<Note>> call, Response<List<Note>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d("Repo", "Notas obtenidas de la API.");
+                    response.body().forEach(localDataSource::saveNote);
+                } else {
+                    Log.e("Repo", "Error al obtener notas de la API: " + response.code());
+                }
+            }
+            @Override
+            public void onFailure(Call<List<Note>> call, Throwable t) {
+                Log.e("Repo", "Fallo de red al obtener notas: " + t.getMessage());
+            }
+        });
+        return localDataSource.getAllNotes();
+    }
+
+
+    // --- MÉTODOS "ADD" MODIFICADOS PARA LA API ---
+
+    public void addSubject(Subject subject) {
+        localDataSource.saveSubject(subject); // Respuesta rápida en UI
         remoteDataSource.createSubject(subject).enqueue(new Callback<Subject>() {
             @Override
             public void onResponse(Call<Subject> call, Response<Subject> response) {
                 if (response.isSuccessful()) {
                     Log.d("Repo", "Materia creada en el servidor con éxito.");
-                    // Opcional: podrías actualizar el objeto local con datos del servidor si es necesario
                 } else {
                     Log.e("Repo", "Error al crear la materia en el servidor: " + response.code());
-                    // Aquí podrías implementar una lógica para reintentar más tarde
                 }
             }
-
             @Override
             public void onFailure(Call<Subject> call, Throwable t) {
                 Log.e("Repo", "Fallo de red al crear la materia: " + t.getMessage());
@@ -140,17 +185,14 @@ public class TheCalendarRepository {
         });
     }
 
-    // --- RESTO DE MÉTODOS (SIN CAMBIOS) ---
+    // --- MÉTODOS DE LÓGICA LOCAL (SIN CAMBIOS) ---
+
     public List<Task> getPendingTasks() {
         return localDataSource.getAllTasks().stream().filter(t -> !t.isCompleted()).collect(Collectors.toList());
     }
 
     public List<Task> getCompletedTasks() {
         return localDataSource.getAllTasks().stream().filter(Task::isCompleted).collect(Collectors.toList());
-    }
-
-    public List<Note> getNotes() {
-        return localDataSource.getAllNotes();
     }
 
     public List<Task> getTasksForSubject(String subjectName) {
@@ -174,7 +216,7 @@ public class TheCalendarRepository {
     public void deleteTasks(List<Task> tasks) { localDataSource.deleteTasks(tasks); }
     public void deleteNotes(List<Note> notes) { localDataSource.deleteNotes(notes); }
 
-    // --- DATOS DUMMY (SIN CAMBIOS) ---
+    // --- DATOS DUMMY (PARA LA PRIMERA EJECUCIÓN) ---
     private List<Subject> createDummySubjects() {
         ArrayList<Subject> dummyList = new ArrayList<>();
         dummyList.add(new Subject("Cálculo Diferencial", "Dr. Alan Turing", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40"));

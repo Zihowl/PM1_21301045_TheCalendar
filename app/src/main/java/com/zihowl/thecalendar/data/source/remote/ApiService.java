@@ -14,12 +14,19 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
+/**
+ * Define todos los endpoints de la API para la comunicación con el servidor.
+ * Utiliza Retrofit para las operaciones HTTP.
+ */
 public interface ApiService {
 
     // --- Endpoints para Materias (Subjects) ---
 
-    @GET("materias") // El endpoint que creamos en app.py
+    @GET("materias")
     Call<List<Subject>> getSubjects();
+
+    @GET("materias/{id}")
+    Call<Subject> getSubject(@Path("id") int subjectId);
 
     @POST("materias")
     Call<Subject> createSubject(@Body Subject subject);
@@ -28,7 +35,7 @@ public interface ApiService {
     Call<Subject> updateSubject(@Path("id") int subjectId, @Body Subject subject);
 
     @DELETE("materias/{id}")
-    Call<Void> deleteSubject(@Path("id") int subjectId); // Void porque no esperamos respuesta
+    Call<Void> deleteSubject(@Path("id") int subjectId);
 
 
     // --- Endpoints para Tareas (Tasks) ---
@@ -36,8 +43,17 @@ public interface ApiService {
     @GET("tasks")
     Call<List<Task>> getTasks();
 
+    @GET("tasks/{id}")
+    Call<Task> getTask(@Path("id") int taskId);
+
     @POST("tasks")
     Call<Task> createTask(@Body Task task);
+
+    @PUT("tasks/{id}")
+    Call<Task> updateTask(@Path("id") int taskId, @Body Task task);
+
+    @DELETE("tasks/{id}")
+    Call<Void> deleteTask(@Path("id") int taskId);
 
 
     // --- Endpoints para Notas (Notes) ---
@@ -45,6 +61,15 @@ public interface ApiService {
     @GET("notes")
     Call<List<Note>> getNotes();
 
+    @GET("notes/{id}")
+    Call<Note> getNote(@Path("id") int noteId);
+
     @POST("notes")
     Call<Note> createNote(@Body Note note);
+
+    @PUT("notes/{id}")
+    Call<Note> updateNote(@Path("id") int noteId, @Body Note note);
+
+    @DELETE("notes/{id}")
+    Call<Void> deleteNote(@Path("id") int noteId);
 }
