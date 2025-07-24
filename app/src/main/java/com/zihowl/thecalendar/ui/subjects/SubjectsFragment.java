@@ -7,6 +7,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,6 +31,7 @@ public class SubjectsFragment extends Fragment {
     private SubjectsViewModel viewModel;
     private SubjectsAdapter adapter;
     private OnBackPressedCallback backPressedCallback;
+    private TextView emptyText;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -56,6 +58,7 @@ public class SubjectsFragment extends Fragment {
         setupMenu();
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewSubjects);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        emptyText = view.findViewById(R.id.text_empty_subjects);
         setupAdapter();
         recyclerView.setAdapter(adapter);
         setupObservers();
@@ -83,7 +86,13 @@ public class SubjectsFragment extends Fragment {
     }
 
     private void setupObservers() {
-        viewModel.subjects.observe(getViewLifecycleOwner(), adapter::submitList);
+        viewModel.subjects.observe(getViewLifecycleOwner(), subjects -> {
+            adapter.submitList(subjects);
+            boolean empty = subjects == null || subjects.isEmpty();
+            if (emptyText != null) {
+                emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
+            }
+        });
         viewModel.isSelectionMode.observe(getViewLifecycleOwner(), isSelection -> {
             backPressedCallback.setEnabled(isSelection);
             if (!isSelection) {
