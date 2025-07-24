@@ -8,18 +8,19 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class RetrofitClient {
 
     private static Retrofit retrofit = null;
-
+    
     // URL base para las peticiones. Cuando tengas tu backend, la cambiarás.
     // Usamos una URL pública de prueba por ahora.
-    private static final String BASE_URL = "http://192.168.0.34:5000/api/";
+    private static final String BASE_URL = "http://192.168.0.34:5000/";
 
-    public static Retrofit getClient() {
+    public static Retrofit getClient(SessionManager sessionManager) {
         if (retrofit == null) {
             // Interceptor para ver los logs de las llamadas a la API en el Logcat.
             // Es extremadamente útil para depurar.
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
             logging.setLevel(HttpLoggingInterceptor.Level.BODY);
             OkHttpClient client = new OkHttpClient.Builder()
+                    .addInterceptor(new AuthInterceptor(sessionManager))
                     .addInterceptor(logging)
                     .build();
 
