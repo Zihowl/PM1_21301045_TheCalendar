@@ -51,6 +51,9 @@ public class TheCalendarRepository {
         if (localDataSource.getAllNotes().isEmpty()) {
             createDummyNotes().forEach(this::addNote);
         }
+        // Once all dummy data is inserted, ensure the counters of each subject
+        // reflect the current amount of pending tasks and notes.
+        recalculateAllSubjectCounters();
     }
 
     // --- MÉTODOS GET CON SINCRONIZACIÓN ---
@@ -215,6 +218,29 @@ public class TheCalendarRepository {
     public void updateNote(Note note) { localDataSource.saveNote(note); }
     public void deleteTasks(List<Task> tasks) { localDataSource.deleteTasks(tasks); }
     public void deleteNotes(List<Note> notes) { localDataSource.deleteNotes(notes); }
+
+    /**
+     * Recalculates the counters for a single subject based on current tasks and notes.
+     */
+    public void recalculateSubjectCounters(Subject subject) {
+        int pendingTasks = (int) localDataSource.getAllTasks().stream()
+                .filter(t -> !t.isCompleted() && subject.getName().equals(t.getSubjectName()))
+                .count();
+        int noteCount = (int) localDataSource.getAllNotes().stream()
+                .filter(n -> subject.getName().equals(n.getSubjectName()))
+                .count();
+
+        localDataSource.updateSubjectCounters(subject.getId(), pendingTasks, noteCount);
+    }
+
+    /**
+     * Iterates all subjects and updates their counters.
+     */
+    public void recalculateAllSubjectCounters() {
+        for (Subject subject : localDataSource.getAllSubjects()) {
+            recalculateSubjectCounters(subject);
+        }
+    }
 
     // --- DATOS DUMMY (PARA LA PRIMERA EJECUCIÓN) ---
     private List<Subject> createDummySubjects() {

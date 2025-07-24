@@ -33,6 +33,8 @@ public class TheCalendar extends Application {
         if (isFirstLaunch) {
             TheCalendarRepository repository = TheCalendarRepository.getInstance(new RealmDataSource());
             repository.initializeDummyData();
+            // Make sure subject counters are correctly calculated before marking the first launch as complete
+            repository.recalculateAllSubjectCounters();
             prefs.edit().putBoolean(KEY_FIRST_LAUNCH, false).apply();
         }
     }
