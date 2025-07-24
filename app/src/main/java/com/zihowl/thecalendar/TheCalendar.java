@@ -30,12 +30,14 @@ public class TheCalendar extends Application {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean isFirstLaunch = prefs.getBoolean(KEY_FIRST_LAUNCH, true);
 
+        TheCalendarRepository repository = TheCalendarRepository.getInstance(new RealmDataSource());
+
         if (isFirstLaunch) {
-            TheCalendarRepository repository = TheCalendarRepository.getInstance(new RealmDataSource());
             repository.initializeDummyData();
-            // Make sure subject counters are correctly calculated before marking the first launch as complete
-            repository.recalculateAllSubjectCounters();
             prefs.edit().putBoolean(KEY_FIRST_LAUNCH, false).apply();
         }
+
+        // Always ensure counters reflect current tasks and notes
+        repository.recalculateAllSubjectCounters();
     }
 }
