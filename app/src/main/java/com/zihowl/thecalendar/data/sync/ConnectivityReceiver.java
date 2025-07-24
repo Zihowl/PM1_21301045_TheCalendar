@@ -15,7 +15,10 @@ public class ConnectivityReceiver extends BroadcastReceiver {
         SyncManager manager = SyncManager.getInstance(context);
         manager.updateStatus(connected ? SyncStatus.CONNECTED : SyncStatus.OFFLINE);
         if (connected) {
-            manager.scheduleSync();
+            String token = new com.zihowl.thecalendar.data.session.SessionManager(context).getToken();
+            if (token != null && !token.isEmpty()) {
+                manager.scheduleSync();
+            }
         }
     }
 

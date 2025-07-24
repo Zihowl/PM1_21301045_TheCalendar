@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Task;
 import com.zihowl.thecalendar.ui.main.MainActivity;
+import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +32,7 @@ public class TasksFragment extends Fragment {
     private TasksViewModel viewModel;
     private TasksAdapter adapter;
     private OnBackPressedCallback backPressedCallback;
+    private TextView emptyText;
     private static final String HEADER_PENDING = "Pendientes";
     private static final String HEADER_COMPLETED = "Completadas";
 
@@ -67,6 +69,7 @@ public class TasksFragment extends Fragment {
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        emptyText = view.findViewById(R.id.text_empty_tasks);
 
         adapter = new TasksAdapter(
                 task -> viewModel.toggleTaskCompletion(task),
@@ -138,6 +141,10 @@ public class TasksFragment extends Fragment {
             }
         }
         adapter.submitList(displayList);
+        boolean empty = (pending == null || pending.isEmpty()) && (completed == null || completed.isEmpty());
+        if (emptyText != null) {
+            emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void handleEditAction(Task taskToEdit) {

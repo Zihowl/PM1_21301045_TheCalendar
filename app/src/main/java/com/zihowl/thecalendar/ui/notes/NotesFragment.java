@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import android.widget.TextView;
 
 import com.zihowl.thecalendar.R;
 import com.zihowl.thecalendar.data.model.Note;
@@ -32,6 +33,7 @@ public class NotesFragment extends Fragment {
     private NotesViewModel viewModel;
     private NotesAdapter adapter;
     private OnBackPressedCallback backPressedCallback;
+    private TextView emptyText;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,6 +69,7 @@ public class NotesFragment extends Fragment {
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewNotes);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        emptyText = view.findViewById(R.id.text_empty_notes);
 
         setupAdapter();
         recyclerView.setAdapter(adapter);
@@ -88,7 +91,13 @@ public class NotesFragment extends Fragment {
     }
 
     private void setupObservers() {
-        viewModel.notes.observe(getViewLifecycleOwner(), notes -> adapter.submitList(notes));
+        viewModel.notes.observe(getViewLifecycleOwner(), notes -> {
+            adapter.submitList(notes);
+            boolean empty = notes == null || notes.isEmpty();
+            if (emptyText != null) {
+                emptyText.setVisibility(empty ? View.VISIBLE : View.GONE);
+            }
+        });
 
         viewModel.isSelectionMode.observe(getViewLifecycleOwner(), isSelection -> {
             backPressedCallback.setEnabled(isSelection);

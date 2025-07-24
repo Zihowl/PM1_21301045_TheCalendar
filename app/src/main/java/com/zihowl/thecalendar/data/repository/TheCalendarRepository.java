@@ -16,7 +16,6 @@ import com.zihowl.thecalendar.data.source.remote.graphql.SubjectsData;
 import com.zihowl.thecalendar.data.source.remote.graphql.TasksData;
 import com.zihowl.thecalendar.data.source.remote.graphql.NotesData;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +33,11 @@ public class TheCalendarRepository {
     private final SessionManager sessionManager;
     private final Gson gson = new Gson();
     private static volatile TheCalendarRepository INSTANCE;
+
+    private boolean isLoggedIn() {
+        String token = sessionManager.getToken();
+        return token != null && !token.isEmpty();
+    }
 
     private long queueOperation(String entity, String action, Object obj) {
         String json = gson.toJson(obj);
@@ -85,22 +89,7 @@ public class TheCalendarRepository {
         return INSTANCE;
     }
 
-    // --- LÓGICA DE INICIALIZACIÓN (DATOS DUMMY) ---
-    public void initializeDummyData() {
-        String demoOwner = "demo";
-        if (localDataSource.getAllSubjectsForOwner(demoOwner).isEmpty()) {
-            createDummySubjects().forEach(s -> { s.setOwner(demoOwner); addSubject(s); });
-        }
-        if (localDataSource.getAllTasksForOwner(demoOwner).isEmpty()) {
-            createDummyTasks().forEach(t -> { t.setOwner(demoOwner); addTask(t); });
-        }
-        if (localDataSource.getAllNotesForOwner(demoOwner).isEmpty()) {
-            createDummyNotes().forEach(n -> { n.setOwner(demoOwner); addNote(n); });
-        }
-        // Once all dummy data is inserted, ensure the counters of each subject
-        // reflect the current amount of pending tasks and notes.
-        recalculateAllSubjectCounters();
-    }
+
 
     // --- MÉTODOS GET CON SINCRONIZACIÓN ---
 
@@ -111,7 +100,8 @@ public class TheCalendarRepository {
     public List<Subject> getSubjects() {
         Log.d("Repo", "Intentando obtener materias de la API...");
         String q = "query{misMaterias{ id: dbId nombre profesor tareasCount notasCount }}";
-        remoteDataSource.getSubjects(new GraphQLRequest(q)).enqueue(new Callback<GraphQLResponse<SubjectsData>>() {
+        if (isLoggedIn()) {
+            remoteDataSource.getSubjects(new GraphQLRequest(q)).enqueue(new Callback<GraphQLResponse<SubjectsData>>() {
             @Override
             public void onResponse(Call<GraphQLResponse<SubjectsData>> call, Response<GraphQLResponse<SubjectsData>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
@@ -128,7 +118,8 @@ public class TheCalendarRepository {
             public void onFailure(Call<GraphQLResponse<SubjectsData>> call, Throwable t) {
                 Log.e("Repo", "Fallo de red al obtener materias: " + t.getMessage());
             }
-        });
+            });
+        }
         String owner = sessionManager.getUsername();
         return localDataSource.getAllSubjectsForOwner(owner);
     }
@@ -139,6 +130,7 @@ public class TheCalendarRepository {
      */
     public List<Task> getAllTasks() {
         String q = "query{todasMisTareas{ id: dbId titulo descripcion fecha_entrega: fechaEntrega completada id_materia: idMateria }}";
+        if (isLoggedIn()) {
         remoteDataSource.getTasks(new GraphQLRequest(q)).enqueue(new Callback<GraphQLResponse<TasksData>>() {
             @Override
             public void onResponse(Call<GraphQLResponse<TasksData>> call, Response<GraphQLResponse<TasksData>> response) {
@@ -156,6 +148,7 @@ public class TheCalendarRepository {
                 Log.e("Repo", "Fallo de red al obtener tareas: " + t.getMessage());
             }
         });
+        }
         String owner = sessionManager.getUsername();
         return localDataSource.getAllTasksForOwner(owner);
     }
@@ -166,6 +159,7 @@ public class TheCalendarRepository {
      */
     public List<Note> getNotes() {
         String q = "query{todasMisNotas{ id: dbId titulo contenido id_materia: idMateria }}";
+        if (isLoggedIn()) {
         remoteDataSource.getNotes(new GraphQLRequest(q)).enqueue(new Callback<GraphQLResponse<NotesData>>() {
             @Override
             public void onResponse(Call<GraphQLResponse<NotesData>> call, Response<GraphQLResponse<NotesData>> response) {
@@ -181,6 +175,7 @@ public class TheCalendarRepository {
                 Log.e("Repo", "Fallo de red al obtener notas: " + t.getMessage());
             }
         });
+        }
         String owner = sessionManager.getUsername();
         return localDataSource.getAllNotesForOwner(owner);
     }
@@ -196,21 +191,35 @@ public class TheCalendarRepository {
         Map<String,Object> vars = new java.util.HashMap<>();
         vars.put("nombre", subject.getName());
         vars.put("profesor", subject.getProfessorName());
-        remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if (response.isSuccessful()) {
-                    localDataSource.deletePendingOperation(opId);
-                } else {
-                    Log.e("Repo", "Error al crear la materia en el servidor: " + response.code());
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        try {
+                            Map<?,?> data = (Map<?,?>) response.body().getData();
+                            Map<?,?> crearMateria = (Map<?,?>) data.get("crearMateria");
+                            Map<?,?> materia = (Map<?,?>) crearMateria.get("materia");
+                            Number newId = (Number) materia.get("id");
+                            if (newId != null) {
+                                subject.setId(newId.intValue());
+                                localDataSource.saveSubject(subject);
+                            }
+                        } catch (Exception e) {
+                            Log.e("Repo", "Error parsing create subject response", e);
+                        }
+                        localDataSource.deletePendingOperation(opId);
+                    } else {
+                        Log.e("Repo", "Error al crear la materia en el servidor: " + response.code());
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al crear la materia: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al crear la materia: " + t.getMessage());
+                }
+            });
+        }
     }
 
     /**
@@ -225,21 +234,23 @@ public class TheCalendarRepository {
         vars.put("id", subject.getId());
         vars.put("nombre", subject.getName());
         vars.put("profesor", subject.getProfessorName());
-        remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if (response.isSuccessful()) {
-                    localDataSource.deletePendingOperation(opId);
-                } else {
-                    Log.e("Repo", "Error al actualizar la materia: " + response.code());
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if (response.isSuccessful()) {
+                        localDataSource.deletePendingOperation(opId);
+                    } else {
+                        Log.e("Repo", "Error al actualizar la materia: " + response.code());
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al actualizar la materia: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al actualizar la materia: " + t.getMessage());
+                }
+            });
+        }
     }
 
     public void addTask(Task task) {
@@ -255,21 +266,35 @@ public class TheCalendarRepository {
         vars.put("descripcion", task.getDescription());
         vars.put("fecha", task.getDueDate());
         vars.put("idMateria", task.getSubjectId());
-        remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if(response.isSuccessful()) {;
-                    localDataSource.deletePendingOperation(opId);
-                } else {
-                    Log.e("Repo", "Error al crear la tarea: " + response.code());
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if(response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        try {
+                            Map<?,?> data = (Map<?,?>) response.body().getData();
+                            Map<?,?> crearTarea = (Map<?,?>) data.get("crearTarea");
+                            Map<?,?> tarea = (Map<?,?>) crearTarea.get("tarea");
+                            Number newId = (Number) tarea.get("id");
+                            if (newId != null) {
+                                task.setId(newId.intValue());
+                                localDataSource.saveTask(task);
+                            }
+                        } catch (Exception e) {
+                            Log.e("Repo", "Error parsing create task response", e);
+                        }
+                        localDataSource.deletePendingOperation(opId);
+                    } else {
+                        Log.e("Repo", "Error al crear la tarea: " + response.code());
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al crear tarea: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al crear tarea: " + t.getMessage());
+                }
+            });
+        }
     }
 
     public void addNote(Note note) {
@@ -284,21 +309,35 @@ public class TheCalendarRepository {
         varsN.put("titulo", note.getTitle());
         varsN.put("contenido", note.getContent());
         varsN.put("idMateria", note.getSubjectId());
-        remoteDataSource.mutate(new GraphQLRequest(qn, varsN)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if(response.isSuccessful()) {
-                    localDataSource.deletePendingOperation(opId);
-                } else {
-                    Log.e("Repo", "Error al crear la nota: " + response.code());
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(qn, varsN)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if(response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        try {
+                            Map<?,?> data = (Map<?,?>) response.body().getData();
+                            Map<?,?> crearNota = (Map<?,?>) data.get("crearNota");
+                            Map<?,?> nota = (Map<?,?>) crearNota.get("nota");
+                            Number newId = (Number) nota.get("id");
+                            if (newId != null) {
+                                note.setId(newId.intValue());
+                                localDataSource.saveNote(note);
+                            }
+                        } catch (Exception e) {
+                            Log.e("Repo", "Error parsing create note response", e);
+                        }
+                        localDataSource.deletePendingOperation(opId);
+                    } else {
+                        Log.e("Repo", "Error al crear la nota: " + response.code());
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al crear nota: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al crear nota: " + t.getMessage());
+                }
+            });
+        }
     }
 
     // --- MÉTODOS DE LÓGICA LOCAL (SIN CAMBIOS) ---
@@ -326,7 +365,32 @@ public class TheCalendarRepository {
     }
 
     public void disassociateAndDeleteSubject(int subjectId) {
+        Subject subject = localDataSource.getSubjectById(subjectId);
+        if (subject == null) return;
+
         localDataSource.disassociateAndDeleteSubject(subjectId);
+
+        long opId = queueOperation("subject", "UNLINK_DELETE", subject);
+        String q = "mutation($id:ID!){ desvincularYEliminarMateria(id:$id){ ok }}";
+        Map<String,Object> vars = new HashMap<>();
+        vars.put("id", subjectId);
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if (!response.isSuccessful()) {
+                        Log.e("Repo", "Error al desvincular/eliminar materia: " + response.code());
+                    } else {
+                        localDataSource.deletePendingOperation(opId);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al desvincular/eliminar materia: " + t.getMessage());
+                }
+            });
+        }
     }
 
     public void cascadeDeleteSubjects(List<Integer> subjectIds) {
@@ -338,21 +402,23 @@ public class TheCalendarRepository {
             String q = "mutation($id:ID!){ eliminarMateria(id:$id){ ok }}";
             Map<String,Object> vars = new HashMap<>();
             vars.put("id", id);
-            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-                @Override
-                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                    if (!response.isSuccessful()) {
-                        Log.e("Repo", "Error al eliminar materia: " + response.code());
-                    } else {
-                        localDataSource.deletePendingOperation(opId);
+            if (isLoggedIn()) {
+                remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                        if (!response.isSuccessful()) {
+                            Log.e("Repo", "Error al eliminar materia: " + response.code());
+                        } else {
+                            localDataSource.deletePendingOperation(opId);
+                        }
                     }
-                }
 
-                @Override
-                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                    Log.e("Repo", "Fallo de red al eliminar materia: " + t.getMessage());
-                }
-            });
+                    @Override
+                    public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                        Log.e("Repo", "Fallo de red al eliminar materia: " + t.getMessage());
+                    }
+                });
+            }
         }
     }
 
@@ -375,21 +441,23 @@ public class TheCalendarRepository {
         vars.put("descripcion", task.getDescription());
         vars.put("completada", task.isCompleted());
         vars.put("idMateria", task.getSubjectId());
-        remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if (!response.isSuccessful()) {
-                    Log.e("Repo", "Error al actualizar tarea: " + response.code());
-                } else {
-                    localDataSource.deletePendingOperation(opId);
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if (!response.isSuccessful()) {
+                        Log.e("Repo", "Error al actualizar tarea: " + response.code());
+                    } else {
+                        localDataSource.deletePendingOperation(opId);
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al actualizar tarea: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al actualizar tarea: " + t.getMessage());
+                }
+            });
+        }
 
         if (originalSubjectName != null && !originalSubjectName.equals(task.getSubjectName())) {
             recalculateSubjectCounters(originalSubjectName);
@@ -416,21 +484,23 @@ public class TheCalendarRepository {
         vars.put("titulo", note.getTitle());
         vars.put("contenido", note.getContent());
         vars.put("idMateria", note.getSubjectId());
-        remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-            @Override
-            public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                if (!response.isSuccessful()) {
-                    Log.e("Repo", "Error al actualizar nota: " + response.code());
-                } else {
-                    localDataSource.deletePendingOperation(opId);
+        if (isLoggedIn()) {
+            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                @Override
+                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                    if (!response.isSuccessful()) {
+                        Log.e("Repo", "Error al actualizar nota: " + response.code());
+                    } else {
+                        localDataSource.deletePendingOperation(opId);
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                Log.e("Repo", "Fallo de red al actualizar nota: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                    Log.e("Repo", "Fallo de red al actualizar nota: " + t.getMessage());
+                }
+            });
+        }
 
         if (originalSubjectName != null && !originalSubjectName.equals(note.getSubjectName())) {
             recalculateSubjectCounters(originalSubjectName);
@@ -446,21 +516,23 @@ public class TheCalendarRepository {
             String q = "mutation($id:ID!){ eliminarTarea(id:$id){ ok }}";
             Map<String,Object> vars = new HashMap<>();
             vars.put("id", t.getId());
-            remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
-                @Override
-                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                    if (!response.isSuccessful()) {
-                        Log.e("Repo", "Error al eliminar tarea: " + response.code());
-                    } else {
-                        localDataSource.deletePendingOperation(opId);
+            if (isLoggedIn()) {
+                remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                        if (!response.isSuccessful()) {
+                            Log.e("Repo", "Error al eliminar tarea: " + response.code());
+                        } else {
+                            localDataSource.deletePendingOperation(opId);
+                        }
                     }
-                }
 
-                @Override
-                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                    Log.e("Repo", "Fallo de red al eliminar tarea: " + t.getMessage());
-                }
-            });
+                    @Override
+                    public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                        Log.e("Repo", "Fallo de red al eliminar tarea: " + t.getMessage());
+                    }
+                });
+            }
         }
         tasks.stream()
                 .map(Task::getSubjectName)
@@ -476,21 +548,23 @@ public class TheCalendarRepository {
             String qn = "mutation($id:ID!){ eliminarNota(id:$id){ ok }}";
             Map<String,Object> varsN = new HashMap<>();
             varsN.put("id", n.getId());
-            remoteDataSource.mutate(new GraphQLRequest(qn, varsN)).enqueue(new Callback<GraphQLResponse<Object>>() {
-                @Override
-                public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
-                    if (!response.isSuccessful()) {
-                        Log.e("Repo", "Error al eliminar nota: " + response.code());
-                    } else {
-                        localDataSource.deletePendingOperation(opId);
+            if (isLoggedIn()) {
+                remoteDataSource.mutate(new GraphQLRequest(qn, varsN)).enqueue(new Callback<GraphQLResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<GraphQLResponse<Object>> call, Response<GraphQLResponse<Object>> response) {
+                        if (!response.isSuccessful()) {
+                            Log.e("Repo", "Error al eliminar nota: " + response.code());
+                        } else {
+                            localDataSource.deletePendingOperation(opId);
+                        }
                     }
-                }
 
-                @Override
-                public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
-                    Log.e("Repo", "Fallo de red al eliminar nota: " + t.getMessage());
-                }
-            });
+                    @Override
+                    public void onFailure(Call<GraphQLResponse<Object>> call, Throwable t) {
+                        Log.e("Repo", "Fallo de red al eliminar nota: " + t.getMessage());
+                    }
+                });
+            }
         }
         notes.stream()
                 .map(Note::getSubjectName)
@@ -552,6 +626,7 @@ public class TheCalendarRepository {
      * Este es un ejemplo simple de subida y descarga de datos.
      */
     public void syncWithRemote(ApiService api) throws Exception {
+        if (!isLoggedIn()) return;
         // Subir operaciones pendientes
         for (PendingOperation op : localDataSource.getAllPendingOperations()) {
             switch (op.getEntity()) {
@@ -568,6 +643,10 @@ public class TheCalendarRepository {
                     } else if ("DELETE".equals(op.getAction())) {
                         String m = "mutation($id:ID!){ eliminarMateria(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id", s.getId());
                         api.mutate(new GraphQLRequest(m,v)).execute();
+                    } else if ("UNLINK_DELETE".equals(op.getAction())) {
+                        String m = "mutation($id:ID!){ desvincularYEliminarMateria(id:$id){ ok }}"; Map<String,Object> v = new HashMap<>();
+                        v.put("id", s.getId());
+                        api.mutate(new GraphQLRequest(m, v)).execute();
                     }
                     break;
                 case "task":
@@ -629,27 +708,4 @@ public class TheCalendarRepository {
         recalculateAllSubjectCounters();
     }
 
-    // --- DATOS DUMMY (PARA LA PRIMERA EJECUCIÓN) ---
-    private List<Subject> createDummySubjects() {
-        ArrayList<Subject> dummyList = new ArrayList<>();
-        dummyList.add(new Subject("Cálculo Diferencial", "Dr. Alan Turing", "Lunes 07:00 - 08:40\nMiércoles 07:00 - 08:40"));
-        dummyList.add(new Subject("Programación Móvil", "Dra. Ada Lovelace", "Martes 09:00 - 11:00\nJueves 09:00 - 11:00"));
-        return dummyList;
-    }
-
-    private List<Task> createDummyTasks() {
-        ArrayList<Task> dummyList = new ArrayList<>();
-        Task t1 = new Task("Hacer resumen cap 3", "Resumen del capítulo 3 sobre 'Activity Lifecycle'.", new Date(), "Programación Móvil");
-        Task t2 = new Task("Resolver ejercicios pag. 50", "Ejercicios de la página 50, sección de derivadas.", new Date(), "Cálculo Diferencial");
-        dummyList.add(t1);
-        dummyList.add(t2);
-        return dummyList;
-    }
-
-    private List<Note> createDummyNotes() {
-        ArrayList<Note> dummyList = new ArrayList<>();
-        dummyList.add(new Note("Apunte de Cálculo", "Recordar la regla de la cadena.", "Cálculo Diferencial"));
-        dummyList.add(new Note("Idea para App", "Usar Realm para la base de datos local.", "Programación Móvil"));
-        return dummyList;
-    }
 }

@@ -91,7 +91,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             headerStatus.setText(text);
         });
 
-        syncManager.scheduleSync();
+        if (authRepository.getSessionManager().getToken() != null) {
+            syncManager.scheduleSync();
+        }
 
         setupViewModels();
         setupToolbarAndDrawer();
