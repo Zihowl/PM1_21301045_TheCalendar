@@ -23,6 +23,26 @@ public class TheCalendarRepository {
     private final ApiService remoteDataSource;
     private static volatile TheCalendarRepository INSTANCE;
 
+    /**
+     * Busca una tarea por su ID en la base local.
+     */
+    private Task getTaskById(int id) {
+        return localDataSource.getAllTasks().stream()
+                .filter(t -> t.getId() == id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Busca una nota por su ID en la base local.
+     */
+    private Note getNoteById(int id) {
+        return localDataSource.getAllNotes().stream()
+                .filter(n -> n.getId() == id)
+                .findFirst()
+                .orElse(null);
+    }
+
     private TheCalendarRepository(RealmDataSource localDataSource, ApiService remoteDataSource) {
         this.localDataSource = localDataSource;
         this.remoteDataSource = remoteDataSource;
@@ -154,6 +174,7 @@ public class TheCalendarRepository {
 
     public void addTask(Task task) {
         localDataSource.saveTask(task); // Guardado local primero
+        recalculateSubjectCounters(task.getSubjectName());
         remoteDataSource.createTask(task).enqueue(new Callback<Task>() {
             @Override
             public void onResponse(Call<Task> call, Response<Task> response) {
@@ -172,6 +193,7 @@ public class TheCalendarRepository {
 
     public void addNote(Note note) {
         localDataSource.saveNote(note); // Guardado local primero
+        recalculateSubjectCounters(note.getSubjectName());
         remoteDataSource.createNote(note).enqueue(new Callback<Note>() {
             @Override
             public void onResponse(Call<Note> call, Response<Note> response) {
@@ -214,10 +236,54 @@ public class TheCalendarRepository {
         localDataSource.cascadeDeleteSubjects(subjectIds);
     }
 
-    public void updateTask(Task task) { localDataSource.saveTask(task); }
-    public void updateNote(Note note) { localDataSource.saveNote(note); }
-    public void deleteTasks(List<Task> tasks) { localDataSource.deleteTasks(tasks); }
-    public void deleteNotes(List<Note> notes) { localDataSource.deleteNotes(notes); }
+    public void updateTask(Task task) {
+        localDataSource.saveTask(task);
+        recalculateSubjectCounters(task.getSubjectName());
+    }
+
+    public void updateNote(Note note) {
+        localDataSource.saveNote(note);
+        recalculateSubjectCounters(note.getSubjectName());
+    }
+
+    public void deleteTasks(List<Task> tasks) {
+        localDataSource.deleteTasks(tasks);
+        tasks.stream()
+                .map(Task::getSubjectName)
+                .filter(name -> name != null && !name.isEmpty())
+                .distinct()
+                .forEach(this::recalculateSubjectCounters);
+    }
+
+    public void deleteNotes(List<Note> notes) {
+        localDataSource.deleteNotes(notes);
+        notes.stream()
+                .map(Note::getSubjectName)
+                .filter(name -> name != null && !name.isEmpty())
+                .distinct()
+                .forEach(this::recalculateSubjectCounters);
+    }
+
+    /**
+     * Recalcula los contadores para una materia a partir de su nombre.
+     */
+    private void recalculateSubjectCounters(String subjectName) {
+        if (subjectName == null || subjectName.isEmpty()) {
+            return;
+        }
+        Subject subject = localDataSource.getSubjectByName(subjectName);
+        if (subject == null) {
+            return;
+        }
+        int pendingTasks = (int) localDataSource.getAllTasks().stream()
+                .filter(t -> !t.isCompleted() && subjectName.equals(t.getSubjectName()))
+                .count();
+        int notesCount = (int) localDataSource.getAllNotes().stream()
+                .filter(n -> subjectName.equals(n.getSubjectName()))
+                .count();
+
+        localDataSource.updateSubjectCounters(subject.getId(), pendingTasks, notesCount);
+    }
 
     /**
      * Recalculates the counters for a single subject based on current tasks and notes.

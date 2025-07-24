@@ -40,6 +40,16 @@ public class RealmDataSource {
         }
     }
 
+    /**
+     * Obtiene una materia por su nombre exacto.
+     */
+    public Subject getSubjectByName(String name) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            Subject subject = realm.where(Subject.class).equalTo("name", name).findFirst();
+            return subject != null ? realm.copyFromRealm(subject) : null;
+        }
+    }
+
     public void updateSubjectCounters(int subjectId, int taskCount, int noteCount) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
