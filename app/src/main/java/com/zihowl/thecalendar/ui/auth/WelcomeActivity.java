@@ -28,7 +28,7 @@ public class WelcomeActivity extends AppCompatActivity {
         // Se usa un valor por defecto "Usuario" si el extra no llega
         String usuario = getIntent().getStringExtra("NOMBRE_USUARIO");
         if (usuario == null || usuario.isEmpty()) {
-            usuario = "null";
+            usuario = getString(R.string.default_username);
         }
 
         // Se establece el texto de bienvenida

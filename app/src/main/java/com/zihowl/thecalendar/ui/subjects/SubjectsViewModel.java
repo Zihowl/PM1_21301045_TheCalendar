@@ -42,7 +42,6 @@ public class SubjectsViewModel extends ViewModel {
         this.addSubjectUseCase = add;
         this.updateSubjectUseCase = update;
         this.deleteSubjectsUseCase = delete;
-        // La instancia del repositorio se obtiene del factory, que ya está configurado.
         this.repository = TheCalendarRepository.getInstance(new RealmDataSource());
         loadSubjects();
     }
