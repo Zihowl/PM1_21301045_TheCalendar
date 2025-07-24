@@ -237,12 +237,34 @@ public class TheCalendarRepository {
     }
 
     public void updateTask(Task task) {
+        String originalSubjectName = null;
+        Task existing = getTaskById(task.getId());
+        if (existing != null) {
+            originalSubjectName = existing.getSubjectName();
+        }
+
         localDataSource.saveTask(task);
+
+        if (originalSubjectName != null && !originalSubjectName.equals(task.getSubjectName())) {
+            recalculateSubjectCounters(originalSubjectName);
+        }
+
         recalculateSubjectCounters(task.getSubjectName());
     }
 
     public void updateNote(Note note) {
+        String originalSubjectName = null;
+        Note existing = getNoteById(note.getId());
+        if (existing != null) {
+            originalSubjectName = existing.getSubjectName();
+        }
+
         localDataSource.saveNote(note);
+
+        if (originalSubjectName != null && !originalSubjectName.equals(note.getSubjectName())) {
+            recalculateSubjectCounters(originalSubjectName);
+        }
+
         recalculateSubjectCounters(note.getSubjectName());
     }
 
@@ -306,6 +328,36 @@ public class TheCalendarRepository {
         for (Subject subject : localDataSource.getAllSubjects()) {
             recalculateSubjectCounters(subject);
         }
+    }
+
+    /**
+     * Sincroniza con el servidor aplicando estrategia "last-write-wins".
+     * Este es un ejemplo simple de subida y descarga de datos.
+     */
+    public void syncWithRemote(ApiService api) throws Exception {
+        // Descargar datos remotos y guardarlos localmente
+        Response<List<Subject>> subjectsRes = api.getSubjects().execute();
+        if (subjectsRes.isSuccessful() && subjectsRes.body() != null) {
+            for (Subject s : subjectsRes.body()) {
+                localDataSource.saveSubject(s);
+            }
+        }
+
+        Response<List<Task>> tasksRes = api.getTasks().execute();
+        if (tasksRes.isSuccessful() && tasksRes.body() != null) {
+            for (Task t : tasksRes.body()) {
+                localDataSource.saveTask(t);
+            }
+        }
+
+        Response<List<Note>> notesRes = api.getNotes().execute();
+        if (notesRes.isSuccessful() && notesRes.body() != null) {
+            for (Note n : notesRes.body()) {
+                localDataSource.saveNote(n);
+            }
+        }
+
+        recalculateAllSubjectCounters();
     }
 
     // --- DATOS DUMMY (PARA LA PRIMERA EJECUCIÓN) ---

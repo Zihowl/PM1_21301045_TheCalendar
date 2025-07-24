@@ -3,6 +3,9 @@ package com.zihowl.thecalendar.data.source.remote;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.data.model.Task;
+import com.zihowl.thecalendar.data.model.auth.AuthToken;
+import com.zihowl.thecalendar.data.model.auth.LoginRequest;
+import com.zihowl.thecalendar.data.model.auth.RegisterRequest;
 
 import java.util.List;
 
@@ -19,6 +22,13 @@ import retrofit2.http.Path;
  * Utiliza Retrofit para las operaciones HTTP.
  */
 public interface ApiService {
+
+    // --- Endpoints de Autenticación ---
+    @POST("api/login")
+    Call<AuthToken> login(@Body LoginRequest request);
+
+    @POST("api/register")
+    Call<Void> register(@Body RegisterRequest request);
 
     // --- Endpoints para Materias (Subjects) ---
 
