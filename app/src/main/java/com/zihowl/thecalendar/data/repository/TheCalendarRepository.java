@@ -237,12 +237,34 @@ public class TheCalendarRepository {
     }
 
     public void updateTask(Task task) {
+        String originalSubjectName = null;
+        Task existing = getTaskById(task.getId());
+        if (existing != null) {
+            originalSubjectName = existing.getSubjectName();
+        }
+
         localDataSource.saveTask(task);
+
+        if (originalSubjectName != null && !originalSubjectName.equals(task.getSubjectName())) {
+            recalculateSubjectCounters(originalSubjectName);
+        }
+
         recalculateSubjectCounters(task.getSubjectName());
     }
 
     public void updateNote(Note note) {
+        String originalSubjectName = null;
+        Note existing = getNoteById(note.getId());
+        if (existing != null) {
+            originalSubjectName = existing.getSubjectName();
+        }
+
         localDataSource.saveNote(note);
+
+        if (originalSubjectName != null && !originalSubjectName.equals(note.getSubjectName())) {
+            recalculateSubjectCounters(originalSubjectName);
+        }
+
         recalculateSubjectCounters(note.getSubjectName());
     }
 
