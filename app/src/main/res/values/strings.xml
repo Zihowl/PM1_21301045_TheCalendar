@@ -41,4 +41,9 @@
     <string name="hint_task_title">Título de la tarea</string>
     <string name="hint_task_description">Descripción (opcional)</string>
     <string name="default_username">Usuario</string>
+    <string name="sync_offline">Sin conexión</string>
+    <string name="sync_connected">Conectado</string>
+    <string name="sync_syncing">Sincronizando…</string>
+    <string name="sync_complete">Sync completa</string>
+    <string name="sync_error">Error de sync</string>
 </resources>

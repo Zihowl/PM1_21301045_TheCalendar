@@ -15,6 +15,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.data.repository.AuthRepository;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Call;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -57,18 +61,30 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         // --- Listener para el botón de Login ---
+        AuthRepository authRepository = new AuthRepository(this);
         loginButton.setOnClickListener(view -> {
-            // Obtener el texto del campo de usuario ---
             String username = usernameEditText.getText().toString().trim();
+            String password = passwordEditText.getText().toString();
 
-            // --- Guardar el usuario en el archivo .properties ---
             saveUserToProperties(username);
 
-            Intent intent = new Intent(LoginActivity.this, WelcomeActivity.class);
-            // Usar la variable en lugar del texto fijo ---
-            intent.putExtra("NOMBRE_USUARIO", username);
+            authRepository.login(username, password, new Callback<Boolean>() {
+                @Override
+                public void onResponse(Call<Boolean> call, Response<Boolean> response) {
+                    if (Boolean.TRUE.equals(response.body())) {
+                        Intent intent = new Intent(LoginActivity.this, WelcomeActivity.class);
+                        intent.putExtra("NOMBRE_USUARIO", username);
+                        activityLauncher.launch(intent);
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Credenciales inválidas", Toast.LENGTH_SHORT).show();
+                    }
+                }
 
-            activityLauncher.launch(intent);
+                @Override
+                public void onFailure(Call<Boolean> call, Throwable t) {
+                    Toast.makeText(LoginActivity.this, "Error de red", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         registerTextView.setOnClickListener(view -> {

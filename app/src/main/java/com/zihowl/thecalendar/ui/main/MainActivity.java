@@ -8,6 +8,7 @@ import android.text.style.StyleSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -31,6 +32,9 @@ import com.zihowl.thecalendar.ui.subjects.detail.SubjectDetailFragment;
 import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
+import com.zihowl.thecalendar.data.repository.AuthRepository;
+import com.zihowl.thecalendar.data.sync.SyncManager;
+import com.zihowl.thecalendar.data.sync.SyncStatus;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, FragmentManager.OnBackStackChangedListener {
 
@@ -40,6 +44,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ActionBarDrawerToggle toggle;
     private TabLayout tabLayout;
     private View contentMainView;
+
+    private TextView headerUser;
+    private TextView headerStatus;
+    private AuthRepository authRepository;
+    private SyncManager syncManager;
 
     private SubjectsViewModel subjectsViewModel;
     private TasksViewModel tasksViewModel;
@@ -56,6 +65,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
         contentMainView = findViewById(R.id.contentMainLayout);
+
+        authRepository = new AuthRepository(this);
+        syncManager = SyncManager.getInstance(this);
+
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        View header = navigationView.getHeaderView(0);
+        headerUser = header.findViewById(R.id.header_user);
+        headerStatus = header.findViewById(R.id.header_sync_status);
+        headerUser.setText(authRepository.getSessionManager().getUsername());
+        syncManager.getStatus().observe(this, status -> {
+            String text = switch (status) {
+                case OFFLINE -> getString(R.string.sync_offline);
+                case CONNECTED -> getString(R.string.sync_connected);
+                case SYNCING -> getString(R.string.sync_syncing);
+                case COMPLETE -> getString(R.string.sync_complete);
+                case ERROR -> getString(R.string.sync_error);
+            };
+            headerStatus.setText(text);
+        });
+
+        syncManager.scheduleSync();
 
         setupViewModels();
         setupToolbarAndDrawer();
@@ -240,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void handleLogout() {
+        authRepository.logout();
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

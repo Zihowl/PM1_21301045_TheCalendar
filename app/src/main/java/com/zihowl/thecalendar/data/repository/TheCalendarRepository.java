@@ -330,6 +330,36 @@ public class TheCalendarRepository {
         }
     }
 
+    /**
+     * Sincroniza con el servidor aplicando estrategia "last-write-wins".
+     * Este es un ejemplo simple de subida y descarga de datos.
+     */
+    public void syncWithRemote(ApiService api) throws Exception {
+        // Descargar datos remotos y guardarlos localmente
+        Response<List<Subject>> subjectsRes = api.getSubjects().execute();
+        if (subjectsRes.isSuccessful() && subjectsRes.body() != null) {
+            for (Subject s : subjectsRes.body()) {
+                localDataSource.saveSubject(s);
+            }
+        }
+
+        Response<List<Task>> tasksRes = api.getTasks().execute();
+        if (tasksRes.isSuccessful() && tasksRes.body() != null) {
+            for (Task t : tasksRes.body()) {
+                localDataSource.saveTask(t);
+            }
+        }
+
+        Response<List<Note>> notesRes = api.getNotes().execute();
+        if (notesRes.isSuccessful() && notesRes.body() != null) {
+            for (Note n : notesRes.body()) {
+                localDataSource.saveNote(n);
+            }
+        }
+
+        recalculateAllSubjectCounters();
+    }
+
     // --- DATOS DUMMY (PARA LA PRIMERA EJECUCIÓN) ---
     private List<Subject> createDummySubjects() {
         ArrayList<Subject> dummyList = new ArrayList<>();
