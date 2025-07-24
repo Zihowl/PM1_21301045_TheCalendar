@@ -13,7 +13,7 @@ public class RetrofitClient {
     
     // URL base para las peticiones. Cuando tengas tu backend, la cambiarás.
     // Usamos una URL pública de prueba por ahora.
-    private static final String BASE_URL = "http://192.168.0.34:5000/";
+    private static final String BASE_URL = "http://192.168.137.100:5000";
 
     public static Retrofit getClient(SessionManager sessionManager) {
         if (retrofit == null) {

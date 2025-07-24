@@ -12,6 +12,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.zihowl.thecalendar.R;
+import com.zihowl.thecalendar.data.repository.AuthRepository;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import java.util.regex.Pattern;
 
@@ -48,9 +52,28 @@ public class SignUpActivity extends AppCompatActivity {
         TextView registrationTitleTextView = findViewById(R.id.registration_title_text_view);
 
         // --- Lógica para el botón de registro ---
+        AuthRepository authRepository = new AuthRepository(this);
         registerButton.setOnClickListener(v -> {
             if (validateForm()) {
-                Toast.makeText(SignUpActivity.this, "¡Registro exitoso!", Toast.LENGTH_SHORT).show();
+                String username = usernameEditText.getText().toString().trim();
+                String password = passwordEditText.getText().toString();
+
+                authRepository.register(username, password, new Callback<Boolean>() {
+                    @Override
+                    public void onResponse(Call<Boolean> call, Response<Boolean> response) {
+                        if (Boolean.TRUE.equals(response.body())) {
+                            Toast.makeText(SignUpActivity.this, "¡Registro exitoso!", Toast.LENGTH_SHORT).show();
+                            finish();
+                        } else {
+                            Toast.makeText(SignUpActivity.this, "Error al registrar", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Boolean> call, Throwable t) {
+                        Toast.makeText(SignUpActivity.this, "Error de red", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
 

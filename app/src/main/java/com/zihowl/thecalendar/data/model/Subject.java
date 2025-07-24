@@ -19,16 +19,15 @@ public class Subject extends RealmObject implements Serializable {
     private int tasksPending;
     private int notesCount;
 
+    // Almacena el usuario dueño del registro para separar los datos locales
+    private String owner;
+
     // Constructor vacío requerido por Realm
     public Subject() {}
 
     // Constructor simplificado (preferido)
     public Subject(String name, String professorName, String schedule) {
-        this.name = name;
-        this.professorName = professorName;
-        this.schedule = schedule;
-        this.tasksPending = 0;
-        this.notesCount = 0;
+        this(name, professorName, schedule, 0, 0);
     }
 
     // --- ¡CONSTRUCTOR AÑADIDO PARA COMPATIBILIDAD! ---
@@ -49,6 +48,7 @@ public class Subject extends RealmObject implements Serializable {
     public String getSchedule() { return schedule; }
     public int getTasksPending() { return tasksPending; }
     public int getNotesCount() { return notesCount; }
+    public String getOwner() { return owner; }
 
     // Setters
     public void setId(int id) { this.id = id; }
@@ -57,6 +57,7 @@ public class Subject extends RealmObject implements Serializable {
     public void setSchedule(String schedule) { this.schedule = schedule; }
     public void setTasksPending(int tasksPending) { this.tasksPending = tasksPending; }
     public void setNotesCount(int notesCount) { this.notesCount = notesCount; }
+    public void setOwner(String owner) { this.owner = owner; }
 
     @Override
     public boolean equals(Object o) {

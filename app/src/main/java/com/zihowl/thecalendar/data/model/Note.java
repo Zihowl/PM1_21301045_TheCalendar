@@ -24,6 +24,8 @@ public class Note extends RealmObject implements Serializable {
     @SerializedName("id_materia")
     private Integer subjectId;
 
+    private String owner;
+
     public Note() {
         // Constructor vacío requerido por Realm
     }
@@ -40,6 +42,7 @@ public class Note extends RealmObject implements Serializable {
     public String getContent() { return content; }
     public String getSubjectName() { return subjectName; }
     public Integer getSubjectId() { return subjectId; }
+    public String getOwner() { return owner; }
 
     // Setters
     public void setId(int id) { this.id = id; }
@@ -47,6 +50,7 @@ public class Note extends RealmObject implements Serializable {
     public void setContent(String content) { this.content = content; }
     public void setSubjectName(String subjectName) { this.subjectName = subjectName; }
     public void setSubjectId(Integer subjectId) { this.subjectId = subjectId; }
+    public void setOwner(String owner) { this.owner = owner; }
 
     @Override
     public boolean equals(Object o) {

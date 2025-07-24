@@ -38,6 +38,9 @@ public class Task extends RealmObject implements Serializable {
     @SerializedName("id_materia")
     private transient Integer subjectId;
 
+    // Usuario dueño del registro
+    private String owner;
+
     // Constructor vacío requerido por Realm
     public Task() {}
 
@@ -68,6 +71,8 @@ public class Task extends RealmObject implements Serializable {
     // Getters y setters para el campo que solo usa la API
     public Integer getSubjectId() { return subjectId; }
     public void setSubjectId(Integer subjectId) { this.subjectId = subjectId; }
+    public String getOwner() { return owner; }
+    public void setOwner(String owner) { this.owner = owner; }
 
 
     // --- Métodos de igualdad (equals y hashCode) ---

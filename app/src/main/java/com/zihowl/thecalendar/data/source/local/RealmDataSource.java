@@ -3,6 +3,7 @@ package com.zihowl.thecalendar.data.source.local;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.data.model.Task;
+import com.zihowl.thecalendar.data.model.PendingOperation;
 import io.realm.Realm;
 import io.realm.RealmObject;
 import io.realm.RealmResults;
@@ -16,9 +17,11 @@ public class RealmDataSource {
     }
 
     // --- Subject ---
-    public List<Subject> getAllSubjects() {
+    public List<Subject> getAllSubjectsForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            return realm.copyFromRealm(realm.where(Subject.class).findAll());
+            return realm.copyFromRealm(
+                    realm.where(Subject.class).equalTo("owner", owner).findAll()
+            );
         }
     }
 
@@ -63,9 +66,11 @@ public class RealmDataSource {
     }
 
     // --- Task ---
-    public List<Task> getAllTasks() {
+    public List<Task> getAllTasksForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            return realm.copyFromRealm(realm.where(Task.class).findAll());
+            return realm.copyFromRealm(
+                    realm.where(Task.class).equalTo("owner", owner).findAll()
+            );
         }
     }
 
@@ -91,9 +96,11 @@ public class RealmDataSource {
     }
 
     // --- Note ---
-    public List<Note> getAllNotes() {
+    public List<Note> getAllNotesForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            return realm.copyFromRealm(realm.where(Note.class).findAll());
+            return realm.copyFromRealm(
+                    realm.where(Note.class).equalTo("owner", owner).findAll()
+            );
         }
     }
 
@@ -171,6 +178,43 @@ public class RealmDataSource {
                         managedSubject.deleteFromRealm();
                     }
                 }
+            });
+        }
+    }
+
+    // --- Pending operations management ---
+    public List<PendingOperation> getAllPendingOperations() {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            return realm.copyFromRealm(realm.where(PendingOperation.class).findAll());
+        }
+    }
+
+    public void savePendingOperation(PendingOperation op) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                if (op.getId() == 0) {
+                    op.setId(getNextId(r, PendingOperation.class));
+                }
+                r.insertOrUpdate(op);
+            });
+        }
+    }
+
+    public void deletePendingOperation(long id) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                r.where(PendingOperation.class).equalTo("id", id).findAll().deleteAllFromRealm();
+            });
+        }
+    }
+
+    public void clearUserData(String owner) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                r.where(Subject.class).equalTo("owner", owner).findAll().deleteAllFromRealm();
+                r.where(Task.class).equalTo("owner", owner).findAll().deleteAllFromRealm();
+                r.where(Note.class).equalTo("owner", owner).findAll().deleteAllFromRealm();
+                r.where(PendingOperation.class).findAll().deleteAllFromRealm();
             });
         }
     }

@@ -33,6 +33,8 @@ import com.zihowl.thecalendar.ui.subjects.SubjectsViewModel;
 import com.zihowl.thecalendar.ui.tasks.AddTaskDialogFragment;
 import com.zihowl.thecalendar.ui.tasks.TasksViewModel;
 import com.zihowl.thecalendar.data.repository.AuthRepository;
+import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
+import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.data.sync.SyncManager;
 import com.zihowl.thecalendar.data.sync.SyncStatus;
 
@@ -285,6 +287,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void handleLogout() {
         authRepository.logout();
+        TheCalendarRepository.getInstance(new RealmDataSource(), authRepository.getSessionManager())
+                .clearCurrentUserData();
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
