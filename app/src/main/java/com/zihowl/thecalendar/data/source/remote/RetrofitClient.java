@@ -1,5 +1,7 @@
 package com.zihowl.thecalendar.data.source.remote;
 
+import com.zihowl.thecalendar.data.session.SessionManager;
+
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;

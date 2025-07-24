@@ -30,6 +30,7 @@
             android:layout_gravity="bottom"
             android:orientation="vertical">
 
+            <include layout="@layout/nav_footer_login"/>
             <include layout="@layout/nav_footer_logout"/>
 
         </LinearLayout>

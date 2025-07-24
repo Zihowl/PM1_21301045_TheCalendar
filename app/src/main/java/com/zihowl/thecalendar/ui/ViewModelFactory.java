@@ -1,11 +1,13 @@
 package com.zihowl.thecalendar.ui;
 
+import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
+import com.zihowl.thecalendar.data.session.SessionManager;
 import com.zihowl.thecalendar.domain.usecase.note.*;
 import com.zihowl.thecalendar.domain.usecase.subject.*;
 import com.zihowl.thecalendar.domain.usecase.task.*;
@@ -18,12 +20,13 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
     private static volatile ViewModelFactory INSTANCE;
     private final TheCalendarRepository repository;
 
-    public static ViewModelFactory getInstance() {
+    public static ViewModelFactory getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (ViewModelFactory.class) {
                 if (INSTANCE == null) {
                     RealmDataSource dataSource = new RealmDataSource();
-                    TheCalendarRepository repo = TheCalendarRepository.getInstance(dataSource);
+                    SessionManager session = new SessionManager(context.getApplicationContext());
+                    TheCalendarRepository repo = TheCalendarRepository.getInstance(dataSource, session);
                     INSTANCE = new ViewModelFactory(repo);
                 }
             }
@@ -47,7 +50,8 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
                     new GetSubjectsUseCase(repository),
                     new AddSubjectUseCase(repository),
                     new UpdateSubjectUseCase(repository),
-                    new DeleteSubjectsUseCase(repository)
+                    new DeleteSubjectsUseCase(repository),
+                    repository
             );
         }
         if (modelClass.isAssignableFrom(TasksViewModel.class)) {

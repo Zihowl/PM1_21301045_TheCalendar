@@ -4,6 +4,7 @@ import android.util.Log;
 import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.data.model.Task;
+import com.zihowl.thecalendar.data.session.SessionManager;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.data.source.remote.ApiService;
 import com.zihowl.thecalendar.data.source.remote.RetrofitClient;
@@ -21,6 +22,7 @@ public class TheCalendarRepository {
 
     private final RealmDataSource localDataSource;
     private final ApiService remoteDataSource;
+    private final SessionManager sessionManager;
     private static volatile TheCalendarRepository INSTANCE;
 
     /**
@@ -43,17 +45,17 @@ public class TheCalendarRepository {
                 .orElse(null);
     }
 
-    private TheCalendarRepository(RealmDataSource localDataSource, ApiService remoteDataSource) {
+    private TheCalendarRepository(RealmDataSource localDataSource, SessionManager sessionManager) {
         this.localDataSource = localDataSource;
-        this.remoteDataSource = remoteDataSource;
+        this.sessionManager = sessionManager;
+        this.remoteDataSource = RetrofitClient.getClient(sessionManager).create(ApiService.class);
     }
 
-    public static TheCalendarRepository getInstance(RealmDataSource localDataSource) {
+    public static TheCalendarRepository getInstance(RealmDataSource localDataSource, SessionManager sessionManager) {
         if (INSTANCE == null) {
             synchronized (TheCalendarRepository.class) {
                 if (INSTANCE == null) {
-                    ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
-                    INSTANCE = new TheCalendarRepository(localDataSource, apiService);
+                    INSTANCE = new TheCalendarRepository(localDataSource, sessionManager);
                 }
             }
         }

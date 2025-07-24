@@ -44,6 +44,7 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.password_edit_text);
         showPasswordCheckBox = findViewById(R.id.show_password_checkbox);
         TextView registerTextView = findViewById(R.id.register_text_view);
+        TextView continueTextView = findViewById(R.id.continue_text_view);
         Button loginButton = findViewById(R.id.login_button);
 
         // --- Cargar el último usuario guardado al iniciar ---
@@ -91,6 +92,8 @@ public class LoginActivity extends AppCompatActivity {
             Intent intent = new Intent(LoginActivity.this, SignUpActivity.class);
             activityLauncher.launch(intent);
         });
+
+        continueTextView.setOnClickListener(v -> finish());
     }
 
     /**

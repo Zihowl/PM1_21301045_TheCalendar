@@ -18,21 +18,23 @@
 
         <activity
             android:name=".ui.main.MainActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/title_activity_main"
-            android:theme="@style/Theme.TheCalendar.NoActionBar" />
-        <activity android:name=".ui.auth.SignUpActivity" />
-        <activity android:name=".ui.auth.WelcomeActivity" />
-        <activity
-            android:name=".ui.auth.LoginActivity"
-            android:exported="true">
+            android:theme="@style/Theme.TheCalendar.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".ui.auth.SignUpActivity" />
+        <activity android:name=".ui.auth.WelcomeActivity" />
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:exported="false" />
 
-        <receiver android:name="com.zihowl.thecalendar.data.sync.ConnectivityReceiver">
+        <receiver
+            android:name="com.zihowl.thecalendar.data.sync.ConnectivityReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>

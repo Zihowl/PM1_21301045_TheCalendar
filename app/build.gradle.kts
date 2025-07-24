@@ -60,4 +60,7 @@ dependencies {
 
     // WorkManager for background sync
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-beta01")
 }

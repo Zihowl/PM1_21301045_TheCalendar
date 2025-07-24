@@ -23,7 +23,7 @@ public class SyncWorker extends Worker {
         SyncManager.getInstance(getApplicationContext()).updateStatus(SyncStatus.SYNCING);
         SessionManager session = new SessionManager(getApplicationContext());
         ApiService api = RetrofitClient.getClient(session).create(ApiService.class);
-        TheCalendarRepository repository = TheCalendarRepository.getInstance(new RealmDataSource());
+        TheCalendarRepository repository = TheCalendarRepository.getInstance(new RealmDataSource(), session);
         try {
             repository.syncWithRemote(api);
             SyncManager.getInstance(getApplicationContext()).updateStatus(SyncStatus.COMPLETE);

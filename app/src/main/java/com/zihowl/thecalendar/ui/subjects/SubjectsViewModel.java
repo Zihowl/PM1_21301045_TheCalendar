@@ -9,7 +9,6 @@ import com.zihowl.thecalendar.data.model.Note;
 import com.zihowl.thecalendar.data.model.Subject;
 import com.zihowl.thecalendar.data.model.Task;
 import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
-import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.domain.usecase.subject.AddSubjectUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.DeleteSubjectsUseCase;
 import com.zihowl.thecalendar.domain.usecase.subject.GetSubjectsUseCase;
@@ -37,12 +36,13 @@ public class SubjectsViewModel extends ViewModel {
     private final MutableLiveData<Set<Subject>> _selectedSubjects = new MutableLiveData<>(new LinkedHashSet<>());
     public final LiveData<Set<Subject>> selectedSubjects = _selectedSubjects;
 
-    public SubjectsViewModel(GetSubjectsUseCase get, AddSubjectUseCase add, UpdateSubjectUseCase update, DeleteSubjectsUseCase delete) {
+    public SubjectsViewModel(GetSubjectsUseCase get, AddSubjectUseCase add, UpdateSubjectUseCase update,
+                             DeleteSubjectsUseCase delete, TheCalendarRepository repository) {
         this.getSubjectsUseCase = get;
         this.addSubjectUseCase = add;
         this.updateSubjectUseCase = update;
         this.deleteSubjectsUseCase = delete;
-        this.repository = TheCalendarRepository.getInstance(new RealmDataSource());
+        this.repository = repository;
         loadSubjects();
     }
 

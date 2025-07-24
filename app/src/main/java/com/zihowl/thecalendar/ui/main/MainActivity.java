@@ -73,7 +73,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         View header = navigationView.getHeaderView(0);
         headerUser = header.findViewById(R.id.header_user);
         headerStatus = header.findViewById(R.id.header_sync_status);
-        headerUser.setText(authRepository.getSessionManager().getUsername());
+        String name = authRepository.getSessionManager().getUsername();
+        if (name.isEmpty()) {
+            name = getString(R.string.default_username);
+        }
+        headerUser.setText(name);
         syncManager.getStatus().observe(this, status -> {
             String text = switch (status) {
                 case OFFLINE -> getString(R.string.sync_offline);
@@ -95,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setupViewModels() {
-        ViewModelFactory factory = ViewModelFactory.getInstance();
+        ViewModelFactory factory = ViewModelFactory.getInstance(this);
         subjectsViewModel = new ViewModelProvider(this, factory).get(SubjectsViewModel.class);
         tasksViewModel = new ViewModelProvider(this, factory).get(TasksViewModel.class);
         notesViewModel = new ViewModelProvider(this, factory).get(NotesViewModel.class);
@@ -111,8 +115,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void setupToolbarAndDrawer() {
         NavigationView navigationView = findViewById(R.id.nav_view);
+        View loginButton = navigationView.findViewById(R.id.nav_login_button);
         View logoutButton = navigationView.findViewById(R.id.nav_logout_button);
+        boolean loggedIn = authRepository.getSessionManager().getToken() != null;
+        if (loginButton != null) {
+            loginButton.setVisibility(loggedIn ? View.GONE : View.VISIBLE);
+            loginButton.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(this, LoginActivity.class));
+            });
+        }
         if (logoutButton != null) {
+            logoutButton.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
             logoutButton.setOnClickListener(v -> handleLogout());
         }
         toggle = new ActionBarDrawerToggle(
