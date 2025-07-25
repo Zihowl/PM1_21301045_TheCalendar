@@ -150,9 +150,9 @@ def parse_schedule_string(schedule_str):
 def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
-   add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')␊
-    add_column_if_missing('materias', 'updated_at',␊
-                          'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')␊
+    add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
+    add_column_if_missing('materias', 'updated_at',
+                          'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     add_column_if_missing('tareas', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('tareas', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -186,9 +186,9 @@ class HorarioType(SQLAlchemyObjectType):
     updated_at = graphene.DateTime()
 
 
-class MateriaType(SQLAlchemyObjectType):␊
-    class Meta: model = Materia; interfaces = (graphene.relay.Node,)␊
-    
+class MateriaType(SQLAlchemyObjectType):
+    class Meta: model = Materia; interfaces = (graphene.relay.Node,)
+
     db_id = graphene.Int(source='id')
     updated_at = graphene.DateTime()
     horario = graphene.String()
@@ -215,9 +215,10 @@ class MateriaType(SQLAlchemyObjectType):␊
             day = days.get(h.dia_semana, str(h.dia_semana))
             lines.append(f"{day} {h.hora_inicio.strftime('%H:%M')} - {h.hora_fin.strftime('%H:%M')}")
         return "\n".join(lines)
-    
+
     def resolve_tareas_count(self, info):
-        return db.session.query(func.count(Tarea.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario, completada=False).scalar()
+        return db.session.query(func.count(Tarea.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario,
+                                                                completada=False).scalar()
 
     def resolve_notas_count(self, info):
         return db.session.query(func.count(Nota.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario).scalar()
@@ -278,8 +279,8 @@ class CrearMateria(graphene.Mutation):
         nombre = graphene.String(required=True)
         profesor = graphene.String()
         horario = graphene.String()
-        
-     materia = graphene.Field(lambda: MateriaType)
+
+    materia = graphene.Field(lambda: MateriaType)
 
     @token_required
     def mutate(root, info, nombre, **kwargs):
@@ -351,11 +352,11 @@ class EliminarMateria(graphene.Mutation):
 
         # Eliminación en cascada de tareas, notas y horarios asociados
         for tarea in list(materia.tareas):
-            db.session.delete(tarea)␊
+            db.session.delete(tarea)
         for nota in list(materia.notas):
-            db.session.delete(nota)␊
+            db.session.delete(nota)
         for horario in list(materia.horarios):
-            db.session.delete(horario)␊
+            db.session.delete(horario)
 
         db.session.delete(materia)
         db.session.commit()
