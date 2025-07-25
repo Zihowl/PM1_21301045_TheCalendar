@@ -4,6 +4,8 @@ import android.app.Application;
 import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
 import com.zihowl.thecalendar.data.session.SessionManager;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
+import com.zihowl.thecalendar.notifications.NotificationHelper;
+import com.zihowl.thecalendar.notifications.ClassNotificationScheduler;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 
@@ -29,5 +31,8 @@ public class TheCalendar extends Application {
 
         // Always ensure counters reflect current tasks and notes
         repository.recalculateAllSubjectCounters();
+
+        NotificationHelper.createNotificationChannel(this);
+        ClassNotificationScheduler.scheduleNextClass(this);
     }
 }
