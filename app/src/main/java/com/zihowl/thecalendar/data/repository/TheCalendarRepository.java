@@ -344,7 +344,11 @@ public class TheCalendarRepository {
         task.setDeleted(false);
         task.setDeleted(false);
         Subject s = localDataSource.getSubjectByName(task.getSubjectName());
-        if (s != null) task.setSubjectId(s.getId());
+        if (s != null) {
+            task.setSubjectId(s.getId());
+        } else {
+            task.setSubjectId(null);
+        }
         localDataSource.saveTask(task); // Guardado local primero
         recalculateSubjectCounters(task.getSubjectName());
         long opId = queueOperation("task", "CREATE", task);
@@ -392,7 +396,11 @@ public class TheCalendarRepository {
         note.setDeleted(false);
         note.setDeleted(false);
         Subject s = localDataSource.getSubjectByName(note.getSubjectName());
-        if (s != null) note.setSubjectId(s.getId());
+        if (s != null) {
+            note.setSubjectId(s.getId());
+        } else {
+            note.setSubjectId(null);
+        }
         localDataSource.saveNote(note); // Guardado local primero
         recalculateSubjectCounters(note.getSubjectName());
         long opId = queueOperation("note", "CREATE", note);
@@ -524,7 +532,11 @@ public class TheCalendarRepository {
 
         task.setOwner(sessionManager.getUsername());
         Subject s = localDataSource.getSubjectByName(task.getSubjectName());
-        if (s != null) task.setSubjectId(s.getId());
+        if (s != null) {
+            task.setSubjectId(s.getId());
+        } else {
+            task.setSubjectId(null);
+        }
         localDataSource.saveTask(task);
         long opId = queueOperation("task", "UPDATE", task);
         String q = "mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean,$idMateria:ID){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
@@ -568,7 +580,11 @@ public class TheCalendarRepository {
 
         note.setOwner(sessionManager.getUsername());
         Subject s = localDataSource.getSubjectByName(note.getSubjectName());
-        if (s != null) note.setSubjectId(s.getId());
+        if (s != null) {
+            note.setSubjectId(s.getId());
+        } else {
+            note.setSubjectId(null);
+        }
         localDataSource.saveNote(note);
         long opId = queueOperation("note", "UPDATE", note);
         String q = "mutation($id:ID!,$titulo:String,$contenido:String,$idMateria:ID){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
