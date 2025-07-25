@@ -15,6 +15,7 @@ public class Subject extends RealmObject implements Serializable {
     private String name;
     @SerializedName("profesor") // Mapea 'profesor' a 'professorName'
     private String professorName;
+    @SerializedName("horario")
     private String schedule;
     private int tasksPending;
     private int notesCount;

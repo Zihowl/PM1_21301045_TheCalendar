@@ -44,6 +44,7 @@ class Materia(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     profesor = db.Column(db.String(100))
+    horario = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tareas = db.relationship('Tarea', backref='materia', lazy='subquery')
@@ -125,6 +126,7 @@ def apply_migrations():
     add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('materias', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+    add_column_if_missing('materias', 'horario', 'TEXT')
     add_column_if_missing('tareas', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('tareas', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -163,6 +165,7 @@ class MateriaType(SQLAlchemyObjectType):
 
     db_id = graphene.Int(source='id')
     updated_at = graphene.DateTime()
+    horario = graphene.String()
 
     tareas = graphene.List(lambda: TareaType)
     notas = graphene.List(lambda: NotaType)
@@ -235,7 +238,10 @@ class Query(graphene.ObjectType):
 
 # --- MUTACIONES ---
 class CrearMateria(graphene.Mutation):
-    class Arguments: nombre = graphene.String(required=True); profesor = graphene.String()
+    class Arguments:
+        nombre = graphene.String(required=True)
+        profesor = graphene.String()
+        horario = graphene.String()
 
     materia = graphene.Field(lambda: MateriaType)
 
@@ -252,6 +258,7 @@ class ActualizarMateria(graphene.Mutation):
         id = graphene.ID(required=True)
         nombre = graphene.String()
         profesor = graphene.String()
+        horario = graphene.String()
 
     materia = graphene.Field(lambda: MateriaType)
 
@@ -267,8 +274,12 @@ class ActualizarMateria(graphene.Mutation):
         if not materia or materia.id_usuario != info.context.user.id:
             raise Exception("Materia no encontrada.")
 
-        if 'nombre' in kwargs: materia.nombre = kwargs['nombre']
-        if 'profesor' in kwargs: materia.profesor = kwargs['profesor']
+        if 'nombre' in kwargs:
+            materia.nombre = kwargs['nombre']
+        if 'profesor' in kwargs:
+            materia.profesor = kwargs['profesor']
+        if 'horario' in kwargs:
+            materia.horario = kwargs['horario']
 
         db.session.commit()
         return ActualizarMateria(materia=materia)
