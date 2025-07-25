@@ -680,6 +680,13 @@ public class TheCalendarRepository {
     }
 
     /**
+     * Returns true if there are local changes pending synchronization.
+     */
+    public boolean hasPendingOperations() {
+        return !localDataSource.getAllPendingOperations().isEmpty();
+    }
+
+    /**
      * Sincroniza con el servidor aplicando estrategia "last-write-wins".
      * Este es un ejemplo simple de subida y descarga de datos.
      */
