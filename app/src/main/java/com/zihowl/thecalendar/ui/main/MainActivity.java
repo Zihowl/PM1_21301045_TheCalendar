@@ -338,6 +338,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
             android.net.Uri uri = data.getData();
+            if (uri == null) return;
+            // Show the selected image immediately while it's uploaded in
+            // background. This gives instant feedback to the user.
+            Glide.with(this)
+                    .load(uri)
+                    .circleCrop()
+                    .into(headerProfileImage);
+
             java.io.File file = createFileFromUri(uri);
             if (file == null) return;
             authRepository.uploadProfileImage(file, new retrofit2.Callback<com.zihowl.thecalendar.data.model.ImageUploadResponse>() {
