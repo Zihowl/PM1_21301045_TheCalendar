@@ -109,10 +109,17 @@ public class TheCalendarRepository {
                     List<Subject> list = response.body().getData().getMisMaterias();
                     if (list != null) {
                         String owner = sessionManager.getUsername();
+                        java.util.Set<Integer> remoteIds = new java.util.HashSet<>();
                         for (Subject s : list) {
                             s.setOwner(owner);
                             s.setDeleted(false);
+                            remoteIds.add(s.getId());
                             localDataSource.saveSubject(s);
+                        }
+                        for (Subject local : localDataSource.getAllSubjectsForOwner(owner)) {
+                            if (!remoteIds.contains(local.getId())) {
+                                localDataSource.removeCascadeSubject(local.getId());
+                            }
                         }
                     }
                 } else if (response.errorBody() != null) {
@@ -737,10 +744,17 @@ public class TheCalendarRepository {
         Response<GraphQLResponse<SubjectsData>> subjectsRes = api.getSubjects(new GraphQLRequest("query{misMaterias{ id: dbId nombre profesor horario tareasCount notasCount }}")).execute();
         if (subjectsRes.isSuccessful() && subjectsRes.body() != null && subjectsRes.body().getData() != null) {
             String owner = sessionManager.getUsername();
+            java.util.Set<Integer> remoteIds = new java.util.HashSet<>();
             for (Subject s : subjectsRes.body().getData().getMisMaterias()) {
                 s.setOwner(owner);
                 s.setDeleted(false);
+                remoteIds.add(s.getId());
                 localDataSource.saveSubject(s);
+            }
+            for (Subject local : localDataSource.getAllSubjectsForOwner(owner)) {
+                if (!remoteIds.contains(local.getId())) {
+                    localDataSource.removeCascadeSubject(local.getId());
+                }
             }
         }
 
