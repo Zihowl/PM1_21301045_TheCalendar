@@ -32,6 +32,9 @@ public class Task extends RealmObject implements Serializable {
     // Campo para uso local en la UI. No se sincroniza directamente.
     private String subjectName;
 
+    // Marca si la tarea fue eliminada de forma local y espera sincronización
+    private boolean deleted;
+
     // --- Campo para la API ---
     // GSON lo usará para enviar el ID de la materia al crear una nueva tarea.
     // 'transient' significa que Realm ignorará este campo y no lo guardará en la BD local.
@@ -72,7 +75,9 @@ public class Task extends RealmObject implements Serializable {
     public Integer getSubjectId() { return subjectId; }
     public void setSubjectId(Integer subjectId) { this.subjectId = subjectId; }
     public String getOwner() { return owner; }
+    public boolean isDeleted() { return deleted; }
     public void setOwner(String owner) { this.owner = owner; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 
 
     // --- Métodos de igualdad (equals y hashCode) ---

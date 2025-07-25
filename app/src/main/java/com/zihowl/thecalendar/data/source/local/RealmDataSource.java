@@ -20,7 +20,10 @@ public class RealmDataSource {
     public List<Subject> getAllSubjectsForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
             return realm.copyFromRealm(
-                    realm.where(Subject.class).equalTo("owner", owner).findAll()
+                    realm.where(Subject.class)
+                            .equalTo("owner", owner)
+                            .equalTo("deleted", false)
+                            .findAll()
             );
         }
     }
@@ -31,7 +34,13 @@ public class RealmDataSource {
                 if (subject.getId() == 0) {
                     subject.setId(getNextId(r, Subject.class));
                 }
+                Subject existing = r.where(Subject.class).equalTo("id", subject.getId()).findFirst();
+                boolean keepDeleted = existing != null && existing.isDeleted();
                 r.insertOrUpdate(subject);
+                if (keepDeleted) {
+                    Subject managed = r.where(Subject.class).equalTo("id", subject.getId()).findFirst();
+                    if (managed != null) managed.setDeleted(true);
+                }
             });
         }
     }
@@ -69,7 +78,10 @@ public class RealmDataSource {
     public List<Task> getAllTasksForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
             return realm.copyFromRealm(
-                    realm.where(Task.class).equalTo("owner", owner).findAll()
+                    realm.where(Task.class)
+                            .equalTo("owner", owner)
+                            .equalTo("deleted", false)
+                            .findAll()
             );
         }
     }
@@ -80,7 +92,26 @@ public class RealmDataSource {
                 if (task.getId() == 0) {
                     task.setId(getNextId(r, Task.class));
                 }
+                Task existing = r.where(Task.class).equalTo("id", task.getId()).findFirst();
+                boolean keepDeleted = existing != null && existing.isDeleted();
                 r.insertOrUpdate(task);
+                if (keepDeleted) {
+                    Task managed = r.where(Task.class).equalTo("id", task.getId()).findFirst();
+                    if (managed != null) managed.setDeleted(true);
+                }
+            });
+        }
+    }
+
+    public void markTasksDeleted(List<Task> tasks) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                for (Task task : tasks) {
+                    Task managed = r.where(Task.class).equalTo("id", task.getId()).findFirst();
+                    if (managed != null) {
+                        managed.setDeleted(true);
+                    }
+                }
             });
         }
     }
@@ -99,7 +130,10 @@ public class RealmDataSource {
     public List<Note> getAllNotesForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
             return realm.copyFromRealm(
-                    realm.where(Note.class).equalTo("owner", owner).findAll()
+                    realm.where(Note.class)
+                            .equalTo("owner", owner)
+                            .equalTo("deleted", false)
+                            .findAll()
             );
         }
     }
@@ -110,7 +144,26 @@ public class RealmDataSource {
                 if (note.getId() == 0) {
                     note.setId(getNextId(r, Note.class));
                 }
+                Note existing = r.where(Note.class).equalTo("id", note.getId()).findFirst();
+                boolean keepDeleted = existing != null && existing.isDeleted();
                 r.insertOrUpdate(note);
+                if (keepDeleted) {
+                    Note managed = r.where(Note.class).equalTo("id", note.getId()).findFirst();
+                    if (managed != null) managed.setDeleted(true);
+                }
+            });
+        }
+    }
+
+    public void markNotesDeleted(List<Note> notes) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                for (Note note : notes) {
+                    Note managed = r.where(Note.class).equalTo("id", note.getId()).findFirst();
+                    if (managed != null) {
+                        managed.setDeleted(true);
+                    }
+                }
             });
         }
     }
@@ -128,13 +181,23 @@ public class RealmDataSource {
     // --- MÉTODOS PARA LA LÓGICA DE BORRADO ---
     public List<Task> getTasksForSubject(String subjectName) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            return realm.copyFromRealm(realm.where(Task.class).equalTo("subjectName", subjectName).findAll());
+            return realm.copyFromRealm(
+                    realm.where(Task.class)
+                            .equalTo("subjectName", subjectName)
+                            .equalTo("deleted", false)
+                            .findAll()
+            );
         }
     }
 
     public List<Note> getNotesForSubject(String subjectName) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            return realm.copyFromRealm(realm.where(Note.class).equalTo("subjectName", subjectName).findAll());
+            return realm.copyFromRealm(
+                    realm.where(Note.class)
+                            .equalTo("subjectName", subjectName)
+                            .equalTo("deleted", false)
+                            .findAll()
+            );
         }
     }
 
@@ -155,8 +218,8 @@ public class RealmDataSource {
                         note.setSubjectName(null);
                     }
 
-                    // Eliminar la materia
-                    managedSubject.deleteFromRealm();
+                    // Marcar la materia como eliminada
+                    managedSubject.setDeleted(true);
                 }
             });
         }
@@ -170,13 +233,41 @@ public class RealmDataSource {
                     if (managedSubject != null) {
                         String subjectName = managedSubject.getName();
 
-                        // Borrar tareas y notas asociadas
-                        r.where(Task.class).equalTo("subjectName", subjectName).findAll().deleteAllFromRealm();
-                        r.where(Note.class).equalTo("subjectName", subjectName).findAll().deleteAllFromRealm();
+                        // Marcar tareas y notas asociadas como eliminadas
+                        RealmResults<Task> tasks = r.where(Task.class).equalTo("subjectName", subjectName).findAll();
+                        for (Task task : tasks) {
+                            task.setDeleted(true);
+                        }
+                        RealmResults<Note> notes = r.where(Note.class).equalTo("subjectName", subjectName).findAll();
+                        for (Note note : notes) {
+                            note.setDeleted(true);
+                        }
 
-                        // Eliminar la materia
-                        managedSubject.deleteFromRealm();
+                        // Marcar la materia como eliminada
+                        managedSubject.setDeleted(true);
                     }
+                }
+            });
+        }
+    }
+
+    public void removeSubject(int subjectId) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                r.where(Subject.class).equalTo("id", subjectId).findAll().deleteAllFromRealm();
+            });
+        }
+    }
+
+    public void removeCascadeSubject(int subjectId) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                Subject managedSubject = r.where(Subject.class).equalTo("id", subjectId).findFirst();
+                if (managedSubject != null) {
+                    String name = managedSubject.getName();
+                    r.where(Task.class).equalTo("subjectName", name).findAll().deleteAllFromRealm();
+                    r.where(Note.class).equalTo("subjectName", name).findAll().deleteAllFromRealm();
+                    managedSubject.deleteFromRealm();
                 }
             });
         }

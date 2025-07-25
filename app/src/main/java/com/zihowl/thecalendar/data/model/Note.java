@@ -20,6 +20,9 @@ public class Note extends RealmObject implements Serializable {
     // Se mantiene para la lógica local y la interfaz de usuario
     private String subjectName;
 
+    // Indica que la nota se eliminó localmente y espera sincronización
+    private boolean deleted;
+
     // Se usa para enviar y recibir el ID de la materia desde la API
     @SerializedName("id_materia")
     private Integer subjectId;
@@ -43,6 +46,7 @@ public class Note extends RealmObject implements Serializable {
     public String getSubjectName() { return subjectName; }
     public Integer getSubjectId() { return subjectId; }
     public String getOwner() { return owner; }
+    public boolean isDeleted() { return deleted; }
 
     // Setters
     public void setId(int id) { this.id = id; }
@@ -51,6 +55,7 @@ public class Note extends RealmObject implements Serializable {
     public void setSubjectName(String subjectName) { this.subjectName = subjectName; }
     public void setSubjectId(Integer subjectId) { this.subjectId = subjectId; }
     public void setOwner(String owner) { this.owner = owner; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 
     @Override
     public boolean equals(Object o) {
