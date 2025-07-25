@@ -52,10 +52,13 @@ public class SubjectsViewModel extends ViewModel {
 
     // MÉTODO MODIFICADO PARA MOSTRAR RETROALIMENTACIÓN (Toast)
     public void addSubject(String name, String professorName, String schedule, Context context) {
-        addSubjectUseCase.execute(name, professorName, schedule);
-        loadSubjects();
-        // RQF-7: Mensaje de retroalimentación al usuario
-        Toast.makeText(context, "Materia '" + name + "' guardada", Toast.LENGTH_SHORT).show();
+        boolean created = addSubjectUseCase.execute(name, professorName, schedule);
+        if (created) {
+            loadSubjects();
+            Toast.makeText(context, "Materia '" + name + "' guardada", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Ya existe una materia con ese nombre", Toast.LENGTH_LONG).show();
+        }
     }
 
     public void updateSubject(Subject originalSubject, String newName, String newProfessorName, String newSchedule) {

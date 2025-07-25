@@ -11,9 +11,17 @@ public class AddSubjectUseCase {
         this.repository = repository;
     }
 
-    public void execute(String name, String professorName, String schedule) {
-        // Lógica de validación o transformación podría ir aquí.
+    /**
+     * Creates a subject if no other subject with the same name exists.
+     *
+     * @return true if the subject was created, false if a duplicate name exists.
+     */
+    public boolean execute(String name, String professorName, String schedule) {
+        if (repository.subjectExists(name)) {
+            return false;
+        }
         Subject newSubject = new Subject(name, professorName, schedule, 0, 0);
         repository.addSubject(newSubject);
+        return true;
     }
 }

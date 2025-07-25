@@ -62,6 +62,20 @@ public class RealmDataSource {
         }
     }
 
+    /**
+     * Checks if a subject with the given owner and name already exists.
+     */
+    public boolean subjectExists(String owner, String name) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            long count = realm.where(Subject.class)
+                    .equalTo("owner", owner)
+                    .equalTo("name", name)
+                    .equalTo("deleted", false)
+                    .count();
+            return count > 0;
+        }
+    }
+
     public void updateSubjectCounters(int subjectId, int taskCount, int noteCount) {
         try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(r -> {
