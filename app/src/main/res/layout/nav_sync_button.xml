@@ -20,7 +20,7 @@
         android:background="?attr/selectableItemBackground"
         android:minHeight="48dp"
         android:drawablePadding="32dp"
-        android:drawableStart="@android:drawable/stat_notify_sync"
+        android:drawableStart="@drawable/ic_sync"
         android:textColor="?android:attr/textColorPrimary" />
 
 </LinearLayout>

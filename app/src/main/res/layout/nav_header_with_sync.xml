@@ -5,5 +5,4 @@
     android:orientation="vertical">
 
     <include layout="@layout/nav_header_main" />
-    <include layout="@layout/nav_sync_button" />
 </LinearLayout>
