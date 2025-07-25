@@ -107,7 +107,11 @@ public class TheCalendarRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
                     List<Subject> list = response.body().getData().getMisMaterias();
                     if (list != null) {
-                        list.forEach(localDataSource::saveSubject);
+                        String owner = sessionManager.getUsername();
+                        for (Subject s : list) {
+                            s.setOwner(owner);
+                            localDataSource.saveSubject(s);
+                        }
                     }
                 } else if (response.errorBody() != null) {
                     Log.e("Repo", "Error al obtener materias: " + response.code());
@@ -137,7 +141,17 @@ public class TheCalendarRepository {
                 if(response.isSuccessful() && response.body() != null && response.body().getData() != null) {
                     List<Task> list = response.body().getData().getTodasMisTareas();
                     if (list != null) {
-                        list.forEach(localDataSource::saveTask);
+                        String owner = sessionManager.getUsername();
+                        for (Task t : list) {
+                            t.setOwner(owner);
+                            if (t.getSubjectId() != null) {
+                                Subject s = localDataSource.getSubjectById(t.getSubjectId());
+                                if (s != null) {
+                                    t.setSubjectName(s.getName());
+                                }
+                            }
+                            localDataSource.saveTask(t);
+                        }
                     }
                 } else if (response.errorBody() != null) {
                     Log.e("Repo", "Error al obtener tareas de la API: " + response.code());
@@ -165,7 +179,19 @@ public class TheCalendarRepository {
             public void onResponse(Call<GraphQLResponse<NotesData>> call, Response<GraphQLResponse<NotesData>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
                     List<Note> list = response.body().getData().getTodasMisNotas();
-                    if (list != null) list.forEach(localDataSource::saveNote);
+                    if (list != null) {
+                        String owner = sessionManager.getUsername();
+                        for (Note n : list) {
+                            n.setOwner(owner);
+                            if (n.getSubjectId() != null) {
+                                Subject s = localDataSource.getSubjectById(n.getSubjectId());
+                                if (s != null) {
+                                    n.setSubjectName(s.getName());
+                                }
+                            }
+                            localDataSource.saveNote(n);
+                        }
+                    }
                 } else if (response.errorBody() != null) {
                     Log.e("Repo", "Error al obtener notas de la API: " + response.code());
                 }
@@ -695,21 +721,39 @@ public class TheCalendarRepository {
         // Descargar datos remotos y guardarlos localmente
         Response<GraphQLResponse<SubjectsData>> subjectsRes = api.getSubjects(new GraphQLRequest("query{misMaterias{ id: dbId nombre profesor horario tareasCount notasCount }}")).execute();
         if (subjectsRes.isSuccessful() && subjectsRes.body() != null && subjectsRes.body().getData() != null) {
+            String owner = sessionManager.getUsername();
             for (Subject s : subjectsRes.body().getData().getMisMaterias()) {
+                s.setOwner(owner);
                 localDataSource.saveSubject(s);
             }
         }
 
         Response<GraphQLResponse<TasksData>> tasksRes = api.getTasks(new GraphQLRequest("query{todasMisTareas{ id: dbId titulo descripcion fecha_entrega: fechaEntrega completada id_materia: idMateria }}")).execute();
         if (tasksRes.isSuccessful() && tasksRes.body() != null && tasksRes.body().getData() != null) {
+            String owner = sessionManager.getUsername();
             for (Task t : tasksRes.body().getData().getTodasMisTareas()) {
+                t.setOwner(owner);
+                if (t.getSubjectId() != null) {
+                    Subject s = localDataSource.getSubjectById(t.getSubjectId());
+                    if (s != null) {
+                        t.setSubjectName(s.getName());
+                    }
+                }
                 localDataSource.saveTask(t);
             }
         }
 
         Response<GraphQLResponse<NotesData>> notesRes = api.getNotes(new GraphQLRequest("query{todasMisNotas{ id: dbId titulo contenido id_materia: idMateria }}")).execute();
         if (notesRes.isSuccessful() && notesRes.body() != null && notesRes.body().getData() != null) {
+            String owner = sessionManager.getUsername();
             for (Note n : notesRes.body().getData().getTodasMisNotas()) {
+                n.setOwner(owner);
+                if (n.getSubjectId() != null) {
+                    Subject s = localDataSource.getSubjectById(n.getSubjectId());
+                    if (s != null) {
+                        n.setSubjectName(s.getName());
+                    }
+                }
                 localDataSource.saveNote(n);
             }
         }
