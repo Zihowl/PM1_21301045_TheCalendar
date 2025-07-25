@@ -44,7 +44,6 @@ class Materia(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     profesor = db.Column(db.String(100))
-    horario = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tareas = db.relationship('Tarea', backref='materia', lazy='subquery')
@@ -120,13 +119,40 @@ def add_column_if_missing(table, column, spec):
         db.session.commit()
 
 
+def parse_schedule_string(schedule_str):
+    days = {
+        'lunes': 1, 'martes': 2, 'miercoles': 3, 'miércoles': 3,
+        'jueves': 4, 'viernes': 5, 'sabado': 6, 'sábado': 6, 'domingo': 7
+    }
+    horarios = []
+    if not schedule_str:
+        return horarios
+    for line in schedule_str.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        day_name = parts[0].lower()
+        if day_name not in days:
+            continue
+        times = line[len(parts[0]):].strip().split(' - ')
+        if len(times) != 2:
+            continue
+        try:
+            start = datetime.strptime(times[0], '%H:%M').time()
+            end = datetime.strptime(times[1], '%H:%M').time()
+        except Exception:
+            continue
+        horarios.append(Horario(dia_semana=days[day_name], hora_inicio=start, hora_fin=end))
+    return horarios
+
+
 def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('materias', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
-    add_column_if_missing('materias', 'horario', 'TEXT')
     add_column_if_missing('tareas', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('tareas', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -178,7 +204,17 @@ class MateriaType(SQLAlchemyObjectType):
 
     def resolve_notas(self, info): return self.notas
 
-    def resolve_horarios(self, info): return self.horarios
+    def resolve_horarios(self, info):
+        return self.horarios
+
+    def resolve_horario(self, info):
+        days = {1: 'Lunes', 2: 'Martes', 3: 'Miercoles', 4: 'Jueves',
+                5: 'Viernes', 6: 'Sabado', 7: 'Domingo'}
+        lines = []
+        for h in sorted(self.horarios, key=lambda h: (h.dia_semana, h.hora_inicio)):
+            day = days.get(h.dia_semana, str(h.dia_semana))
+            lines.append(f"{day} {h.hora_inicio.strftime('%H:%M')} - {h.hora_fin.strftime('%H:%M')}")
+        return "\n".join(lines)
 
     def resolve_tareas_count(self, info):
         return db.session.query(func.count(Tarea.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario, completada=False).scalar()
@@ -247,8 +283,13 @@ class CrearMateria(graphene.Mutation):
 
     @token_required
     def mutate(root, info, nombre, **kwargs):
+        schedule = kwargs.pop('horario', None)
         materia = Materia(nombre=nombre, id_usuario=info.context.user.id, **kwargs)
-        db.session.add(materia);
+        db.session.add(materia)
+        db.session.commit()
+        for h in parse_schedule_string(schedule):
+            h.id_materia = materia.id
+            db.session.add(h)
         db.session.commit()
         return CrearMateria(materia=materia)
 
@@ -279,7 +320,12 @@ class ActualizarMateria(graphene.Mutation):
         if 'profesor' in kwargs:
             materia.profesor = kwargs['profesor']
         if 'horario' in kwargs:
-            materia.horario = kwargs['horario']
+            schedule = kwargs.pop('horario')
+            for h in materia.horarios:
+                db.session.delete(h)
+            for h in parse_schedule_string(schedule):
+                h.id_materia = materia.id
+                db.session.add(h)
 
         db.session.commit()
         return ActualizarMateria(materia=materia)
