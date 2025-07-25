@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import graphene
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from graphene_sqlalchemy import SQLAlchemyObjectType
@@ -32,6 +32,7 @@ class Usuario(db.Model):
     contrasena_hash = db.Column(db.String(255), nullable=False)
     fecha_registro = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    foto_perfil = db.Column(db.String(255))
     materias = db.relationship('Materia', backref='usuario', cascade="all, delete-orphan")
 
     def __init__(self, n, c): self.nombre_usuario = n; self.contrasena_hash = generate_password_hash(c)
@@ -110,6 +111,23 @@ def token_required(f):
 
     return decorated
 
+def token_required_rest(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('x-access-tokens')
+        if not token:
+            return jsonify({'error': 'Falta el token de autenticación.'}), 401
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            g.user = db.session.get(Usuario, data['id'])
+            if not g.user:
+                raise Exception('Usuario del token no encontrado.')
+        except Exception as e:
+            return jsonify({'error': f'Token inválido: {str(e)}'}), 401
+        return f(*args, **kwargs)
+
+    return decorated
+
 
 def get_real_id(global_id, expected_type_name):
     type_name, real_id = from_global_id(global_id)
@@ -156,6 +174,7 @@ def parse_schedule_string(schedule_str):
 def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+    add_column_if_missing('usuarios', 'foto_perfil', 'VARCHAR(255)')
     add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('materias', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -657,10 +676,11 @@ def login_user():
         app.config['SECRET_KEY'],
         algorithm="HS256"
     )
-    return jsonify({'token': token})
+    return jsonify({'token': token, 'foto_perfil': usuario.foto_perfil})
 
 
 @app.route('/api/subir-imagen', methods=['POST'])
+@token_required_rest
 def subir_imagen():
     if 'imagen' not in request.files:
         return jsonify({'error': 'No se encontró la imagen'}), 400
@@ -671,6 +691,7 @@ def subir_imagen():
     imagen.save(ruta)
     nueva = Imagen(ruta=ruta)
     db.session.add(nueva)
+    g.user.foto_perfil = ruta
     db.session.commit()
     return jsonify({'mensaje': 'Imagen guardada', 'ruta': ruta})
 

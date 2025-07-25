@@ -35,6 +35,7 @@ public class AuthRepository {
             public void onResponse(Call<AuthToken> call, Response<AuthToken> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     sessionManager.saveSession(username, response.body().getToken());
+                    sessionManager.setProfileImage(response.body().getFotoPerfil());
                     callback.onResponse(null, Response.success(true));
                 } else {
                     callback.onResponse(null, Response.success(false));
