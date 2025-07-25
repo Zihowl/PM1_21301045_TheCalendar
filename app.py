@@ -644,20 +644,20 @@ def register_user():
 @app.route('/api/login', methods=['POST'])
 def login_user():
     data = request.get_json()
-    if not data or not data.get('nombre_usuario') or not data.get('contrasena'): return jsonify(
-        {'message': 'Datos incompletos'}), 400
+    if not data or not data.get('nombre_usuario') or not data.get('contrasena'):
+        return jsonify({'message': 'Datos incompletos'}), 400
     usuario = db.session.query(Usuario).filter_by(nombre_usuario=data.get('nombre_usuario')).first()
-    if not usuario or not usuario.verificar_contrasena(data.get('contrasena')): return jsonify(
-        {'message': 'Credenciales inválidas'}), 401
-token = jwt.encode(
-    {
-        'id': usuario.id,
-        'exp': datetime.now().astimezone() + timedelta(hours=24)
-    },
-    app.config['SECRET_KEY'],
-    algorithm="HS256"
-)
-return jsonify({'token': token})
+    if not usuario or not usuario.verificar_contrasena(data.get('contrasena')):
+        return jsonify({'message': 'Credenciales inválidas'}), 401
+    token = jwt.encode(
+        {
+            'id': usuario.id,
+            'exp': datetime.now().astimezone() + timedelta(hours=24)
+        },
+        app.config['SECRET_KEY'],
+        algorithm="HS256"
+    )
+    return jsonify({'token': token})
 
 
 @app.route('/api/subir-imagen', methods=['POST'])
