@@ -99,7 +99,7 @@ public class TheCalendarRepository {
      */
     public List<Subject> getSubjects() {
         Log.d("Repo", "Intentando obtener materias de la API...");
-        String q = "query{misMaterias{ id: dbId nombre profesor tareasCount notasCount }}";
+        String q = "query{misMaterias{ id: dbId nombre profesor horario tareasCount notasCount }}";
         if (isLoggedIn()) {
             remoteDataSource.getSubjects(new GraphQLRequest(q)).enqueue(new Callback<GraphQLResponse<SubjectsData>>() {
             @Override
@@ -187,10 +187,11 @@ public class TheCalendarRepository {
         subject.setOwner(sessionManager.getUsername());
         localDataSource.saveSubject(subject); // Respuesta rápida en UI
         long opId = queueOperation("subject", "CREATE", subject);
-        String q = "mutation($nombre:String!,$profesor:String){ crearMateria(nombre:$nombre, profesor:$profesor){ materia{ id: dbId nombre profesor } } }";
+        String q = "mutation($nombre:String!,$profesor:String,$horario:String){ crearMateria(nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
         Map<String,Object> vars = new java.util.HashMap<>();
         vars.put("nombre", subject.getName());
         vars.put("profesor", subject.getProfessorName());
+        vars.put("horario", subject.getSchedule());
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -229,11 +230,12 @@ public class TheCalendarRepository {
         subject.setOwner(sessionManager.getUsername());
         localDataSource.saveSubject(subject);
         long opId = queueOperation("subject", "UPDATE", subject);
-        String q = "mutation($id:ID!,$nombre:String,$profesor:String){ actualizarMateria(id:$id, nombre:$nombre, profesor:$profesor){ materia{ id: dbId nombre profesor } } }";
+        String q = "mutation($id:ID!,$nombre:String,$profesor:String,$horario:String){ actualizarMateria(id:$id, nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
         Map<String,Object> vars = new HashMap<>();
         vars.put("id", subject.getId());
         vars.put("nombre", subject.getName());
         vars.put("profesor", subject.getProfessorName());
+        vars.put("horario", subject.getSchedule());
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -633,13 +635,20 @@ public class TheCalendarRepository {
                 case "subject":
                     Subject s = gson.fromJson(op.getPayload(), Subject.class);
                     if ("CREATE".equals(op.getAction())) {
-                        String m = "mutation($nombre:String!,$profesor:String){ crearMateria(nombre:$nombre,profesor:$profesor){ materia{ id: dbId } } }";
-                        Map<String,Object> v = new HashMap<>(); v.put("nombre", s.getName()); v.put("profesor", s.getProfessorName());
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        String m = "mutation($nombre:String!,$profesor:String,$horario:String){ crearMateria(nombre:$nombre,profesor:$profesor,horario:$horario){ materia{ id: dbId } } }";
+                        Map<String,Object> v = new HashMap<>();
+                        v.put("nombre", s.getName());
+                        v.put("profesor", s.getProfessorName());
+                        v.put("horario", s.getSchedule());
+                        api.mutate(new GraphQLRequest(m, v)).execute();
                     } else if ("UPDATE".equals(op.getAction())) {
-                        String m = "mutation($id:ID!,$nombre:String,$profesor:String){ actualizarMateria(id:$id,nombre:$nombre,profesor:$profesor){ materia{ id: dbId } } }";
-                        Map<String,Object> v = new HashMap<>(); v.put("id", s.getId()); v.put("nombre", s.getName()); v.put("profesor", s.getProfessorName());
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        String m = "mutation($id:ID!,$nombre:String,$profesor:String,$horario:String){ actualizarMateria(id:$id,nombre:$nombre,profesor:$profesor,horario:$horario){ materia{ id: dbId } } }";
+                        Map<String,Object> v = new HashMap<>();
+                        v.put("id", s.getId());
+                        v.put("nombre", s.getName());
+                        v.put("profesor", s.getProfessorName());
+                        v.put("horario", s.getSchedule());
+                        api.mutate(new GraphQLRequest(m, v)).execute();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m = "mutation($id:ID!){ eliminarMateria(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id", s.getId());
                         api.mutate(new GraphQLRequest(m,v)).execute();
@@ -684,7 +693,7 @@ public class TheCalendarRepository {
         }
 
         // Descargar datos remotos y guardarlos localmente
-        Response<GraphQLResponse<SubjectsData>> subjectsRes = api.getSubjects(new GraphQLRequest("query{misMaterias{ id: dbId nombre profesor tareasCount notasCount }}")).execute();
+        Response<GraphQLResponse<SubjectsData>> subjectsRes = api.getSubjects(new GraphQLRequest("query{misMaterias{ id: dbId nombre profesor horario tareasCount notasCount }}")).execute();
         if (subjectsRes.isSuccessful() && subjectsRes.body() != null && subjectsRes.body().getData() != null) {
             for (Subject s : subjectsRes.body().getData().getMisMaterias()) {
                 localDataSource.saveSubject(s);

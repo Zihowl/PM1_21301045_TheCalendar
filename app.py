@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from graphene_sqlalchemy import SQLAlchemyObjectType
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
@@ -48,7 +48,9 @@ class Materia(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tareas = db.relationship('Tarea', backref='materia', lazy='subquery')
     notas = db.relationship('Nota', backref='materia', lazy='subquery')
-    horarios = db.relationship('Horario', backref='materia', cascade="all, delete-orphan")
+    horarios = db.relationship(
+        'Horario', backref='materia', cascade="all, delete-orphan", lazy='subquery'
+    )
 
 
 class Tarea(db.Model):
@@ -117,6 +119,34 @@ def add_column_if_missing(table, column, spec):
         db.session.commit()
 
 
+def parse_schedule_string(schedule_str):
+    days = {
+        'lunes': 1, 'martes': 2, 'miercoles': 3, 'miércoles': 3,
+        'jueves': 4, 'viernes': 5, 'sabado': 6, 'sábado': 6, 'domingo': 7
+    }
+    horarios = []
+    if not schedule_str:
+        return horarios
+    for line in schedule_str.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        day_name = parts[0].lower()
+        if day_name not in days:
+            continue
+        times = line[len(parts[0]):].strip().split(' - ')
+        if len(times) != 2:
+            continue
+        try:
+            start = datetime.strptime(times[0], '%H:%M').time()
+            end = datetime.strptime(times[1], '%H:%M').time()
+        except Exception:
+            continue
+        horarios.append(Horario(dia_semana=days[day_name], hora_inicio=start, hora_fin=end))
+    return horarios
+
+
 def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -161,6 +191,7 @@ class MateriaType(SQLAlchemyObjectType):
 
     db_id = graphene.Int(source='id')
     updated_at = graphene.DateTime()
+    horario = graphene.String()
 
     tareas = graphene.List(lambda: TareaType)
     notas = graphene.List(lambda: NotaType)
@@ -173,7 +204,17 @@ class MateriaType(SQLAlchemyObjectType):
 
     def resolve_notas(self, info): return self.notas
 
-    def resolve_horarios(self, info): return self.horarios
+    def resolve_horarios(self, info):
+        return self.horarios
+
+    def resolve_horario(self, info):
+        days = {1: 'Lunes', 2: 'Martes', 3: 'Miercoles', 4: 'Jueves',
+                5: 'Viernes', 6: 'Sabado', 7: 'Domingo'}
+        lines = []
+        for h in sorted(self.horarios, key=lambda h: (h.dia_semana, h.hora_inicio)):
+            day = days.get(h.dia_semana, str(h.dia_semana))
+            lines.append(f"{day} {h.hora_inicio.strftime('%H:%M')} - {h.hora_fin.strftime('%H:%M')}")
+        return "\n".join(lines)
 
     def resolve_tareas_count(self, info):
         return db.session.query(func.count(Tarea.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario, completada=False).scalar()
@@ -194,7 +235,7 @@ class Query(graphene.ObjectType):
     mis_materias = graphene.List(MateriaType)
     todas_mis_tareas = graphene.List(TareaType)
     todas_mis_notas = graphene.List(NotaType)
-    datos_actualizados = graphene.Field(DatosActualizados, desde=graphene.DateTime(required=True))
+    datos_actualizados = graphene.Field(DatosActualizados, desde=graphene.DateTime())
 
     @token_required
     def resolve_mis_materias(root, info):
@@ -209,26 +250,46 @@ class Query(graphene.ObjectType):
         return db.session.query(Nota).filter_by(id_usuario=info.context.user.id).order_by(Nota.titulo).all()
 
     @token_required
-    def resolve_datos_actualizados(root, info, desde):
+    def resolve_datos_actualizados(root, info, desde=None):
         uid = info.context.user.id
+
+        q_materias = db.session.query(Materia).filter(Materia.id_usuario == uid)
+        q_tareas = db.session.query(Tarea).filter(Tarea.id_usuario == uid)
+        q_notas = db.session.query(Nota).filter(Nota.id_usuario == uid)
+        q_horarios = db.session.query(Horario).join(Materia).filter(Materia.id_usuario == uid)
+
+        if desde:
+            q_materias = q_materias.filter(Materia.updated_at >= desde)
+            q_tareas = q_tareas.filter(Tarea.updated_at >= desde)
+            q_notas = q_notas.filter(Nota.updated_at >= desde)
+            q_horarios = q_horarios.filter(Horario.updated_at >= desde)
+
         return DatosActualizados(
-            materias=db.session.query(Materia).filter(Materia.id_usuario == uid, Materia.updated_at >= desde).all(),
-            tareas=db.session.query(Tarea).filter(Tarea.id_usuario == uid, Tarea.updated_at >= desde).all(),
-            notas=db.session.query(Nota).filter(Nota.id_usuario == uid, Nota.updated_at >= desde).all(),
-            horarios=db.session.query(Horario).join(Materia).filter(Materia.id_usuario == uid, Horario.updated_at >= desde).all(),
+            materias=q_materias.all(),
+            tareas=q_tareas.all(),
+            notas=q_notas.all(),
+            horarios=q_horarios.all(),
         )
 
 
 # --- MUTACIONES ---
 class CrearMateria(graphene.Mutation):
-    class Arguments: nombre = graphene.String(required=True); profesor = graphene.String()
+    class Arguments:
+        nombre = graphene.String(required=True)
+        profesor = graphene.String()
+        horario = graphene.String()
 
     materia = graphene.Field(lambda: MateriaType)
 
     @token_required
     def mutate(root, info, nombre, **kwargs):
+        schedule = kwargs.pop('horario', None)
         materia = Materia(nombre=nombre, id_usuario=info.context.user.id, **kwargs)
-        db.session.add(materia);
+        db.session.add(materia)
+        db.session.commit()
+        for h in parse_schedule_string(schedule):
+            h.id_materia = materia.id
+            db.session.add(h)
         db.session.commit()
         return CrearMateria(materia=materia)
 
@@ -238,6 +299,7 @@ class ActualizarMateria(graphene.Mutation):
         id = graphene.ID(required=True)
         nombre = graphene.String()
         profesor = graphene.String()
+        horario = graphene.String()
 
     materia = graphene.Field(lambda: MateriaType)
 
@@ -253,8 +315,17 @@ class ActualizarMateria(graphene.Mutation):
         if not materia or materia.id_usuario != info.context.user.id:
             raise Exception("Materia no encontrada.")
 
-        if 'nombre' in kwargs: materia.nombre = kwargs['nombre']
-        if 'profesor' in kwargs: materia.profesor = kwargs['profesor']
+        if 'nombre' in kwargs:
+            materia.nombre = kwargs['nombre']
+        if 'profesor' in kwargs:
+            materia.profesor = kwargs['profesor']
+        if 'horario' in kwargs:
+            schedule = kwargs.pop('horario')
+            for h in materia.horarios:
+                db.session.delete(h)
+            for h in parse_schedule_string(schedule):
+                h.id_materia = materia.id
+                db.session.add(h)
 
         db.session.commit()
         return ActualizarMateria(materia=materia)
