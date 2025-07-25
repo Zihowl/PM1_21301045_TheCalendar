@@ -11,6 +11,7 @@ public class SessionManager {
     private static final String PREFS = "auth_prefs";
     private static final String KEY_TOKEN = "jwt_token";
     private static final String KEY_USER = "username";
+    private static final String KEY_PROFILE = "profile_path";
 
     private final SharedPreferences prefs;
 
@@ -33,6 +34,14 @@ public class SessionManager {
 
     public void saveSession(String username, String token) {
         prefs.edit().putString(KEY_USER, username).putString(KEY_TOKEN, token).apply();
+    }
+
+    public void setProfileImage(String path) {
+        prefs.edit().putString(KEY_PROFILE, path).apply();
+    }
+
+    public String getProfileImage() {
+        return prefs.getString(KEY_PROFILE, "");
     }
 
     public String getToken() {

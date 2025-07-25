@@ -37,6 +37,8 @@ import com.zihowl.thecalendar.data.repository.TheCalendarRepository;
 import com.zihowl.thecalendar.data.source.local.RealmDataSource;
 import com.zihowl.thecalendar.data.sync.SyncManager;
 import com.zihowl.thecalendar.data.sync.SyncStatus;
+import com.zihowl.thecalendar.data.source.remote.RetrofitClient;
+import com.bumptech.glide.Glide;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, FragmentManager.OnBackStackChangedListener {
 
@@ -49,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private TextView headerUser;
     private TextView headerStatus;
+    private android.widget.ImageView headerProfileImage;
+    private static final int PICK_IMAGE_REQUEST = 1001;
     private AuthRepository authRepository;
     private SyncManager syncManager;
 
@@ -75,6 +79,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         View header = navigationView.getHeaderView(0);
         headerUser = header.findViewById(R.id.header_user);
         headerStatus = header.findViewById(R.id.header_sync_status);
+        headerProfileImage = header.findViewById(R.id.header_profile_image);
+        String photo = authRepository.getSessionManager().getProfileImage();
+        if (!photo.isEmpty()) {
+            com.bumptech.glide.Glide.with(this)
+                    .load(com.zihowl.thecalendar.data.source.remote.RetrofitClient.getBaseUrl() + "/" + photo)
+                    .circleCrop()
+                    .into(headerProfileImage);
+        }
+        headerProfileImage.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(intent, PICK_IMAGE_REQUEST);
+        });
         String name = authRepository.getSessionManager().getUsername();
         if (name.isEmpty()) {
             name = getString(R.string.default_username);
@@ -295,5 +311,42 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            android.net.Uri uri = data.getData();
+            java.io.File file = new java.io.File(getPathFromUri(uri));
+            authRepository.uploadProfileImage(file, new retrofit2.Callback<com.zihowl.thecalendar.data.model.ImageUploadResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<com.zihowl.thecalendar.data.model.ImageUploadResponse> call, retrofit2.Response<com.zihowl.thecalendar.data.model.ImageUploadResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        Glide.with(MainActivity.this)
+                                .load(RetrofitClient.getBaseUrl() + "/" + response.body().getRuta())
+                                .circleCrop()
+                                .into(headerProfileImage);
+                    }
+                }
+
+                @Override
+                public void onFailure(retrofit2.Call<com.zihowl.thecalendar.data.model.ImageUploadResponse> call, Throwable t) {
+                }
+            });
+        }
+    }
+
+    private String getPathFromUri(android.net.Uri uri) {
+        String[] projection = { android.provider.MediaStore.Images.Media.DATA };
+        android.database.Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+        if (cursor != null) {
+            int column_index = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            String path = cursor.getString(column_index);
+            cursor.close();
+            return path;
+        }
+        return null;
     }
 }

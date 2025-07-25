@@ -5,9 +5,16 @@ import android.content.Context;
 import com.zihowl.thecalendar.data.model.auth.AuthToken;
 import com.zihowl.thecalendar.data.model.auth.LoginRequest;
 import com.zihowl.thecalendar.data.model.auth.RegisterRequest;
+import com.zihowl.thecalendar.data.model.ImageUploadResponse;
 import com.zihowl.thecalendar.data.session.SessionManager;
 import com.zihowl.thecalendar.data.source.remote.ApiService;
 import com.zihowl.thecalendar.data.source.remote.RetrofitClient;
+
+import java.io.File;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -57,6 +64,26 @@ public class AuthRepository {
 
     public void logout() {
         sessionManager.clear();
+    }
+
+    public void uploadProfileImage(File file, Callback<ImageUploadResponse> callback) {
+        RequestBody reqFile = RequestBody.create(MediaType.parse("image/jpeg"), file);
+        MultipartBody.Part body = MultipartBody.Part.createFormData("imagen", file.getName(), reqFile);
+        RequestBody nombre = RequestBody.create(MediaType.parse("text/plain"), file.getName());
+        apiService.uploadImage(body, nombre).enqueue(new Callback<ImageUploadResponse>() {
+            @Override
+            public void onResponse(Call<ImageUploadResponse> call, Response<ImageUploadResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    sessionManager.setProfileImage(response.body().getRuta());
+                }
+                callback.onResponse(call, response);
+            }
+
+            @Override
+            public void onFailure(Call<ImageUploadResponse> call, Throwable t) {
+                callback.onFailure(call, t);
+            }
+        });
     }
 
     public SessionManager getSessionManager() {
