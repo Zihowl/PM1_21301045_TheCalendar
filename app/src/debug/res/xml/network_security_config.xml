@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.0.96</domain>
+
+    <base-config cleartextTrafficPermitted="false" />
+    <!-- Trust the custom certificate used by the local server -->
+    <domain-config>
+        <domain includeSubdomains="true">192.168.137.100</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/server_cert" />
+        </trust-anchors>
     </domain-config>
-</network-security-config>
+    </network-security-config>

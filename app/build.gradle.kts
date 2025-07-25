@@ -17,7 +17,7 @@ android {
 
         // Base URL para las peticiones. Puede ser establecido mediante la
         // variable de entorno API_BASE_URL al momento de la compilación.
-        val apiUrl = System.getenv("API_BASE_URL") ?: "https://192.168.0.96:5000"
+        val apiUrl = System.getenv("API_BASE_URL") ?: "https://192.168.137.100:5000"
         buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
