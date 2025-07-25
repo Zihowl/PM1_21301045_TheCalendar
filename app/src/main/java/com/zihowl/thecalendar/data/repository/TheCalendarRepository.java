@@ -539,13 +539,12 @@ public class TheCalendarRepository {
         }
         localDataSource.saveTask(task);
         long opId = queueOperation("task", "UPDATE", task);
-        String q = "mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean,$idMateria:ID){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
+        String q = "mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
         Map<String,Object> vars = new HashMap<>();
         vars.put("id", task.getId());
         vars.put("titulo", task.getTitle());
         vars.put("descripcion", task.getDescription());
         vars.put("completada", task.isCompleted());
-        vars.put("idMateria", task.getSubjectId());
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -587,12 +586,11 @@ public class TheCalendarRepository {
         }
         localDataSource.saveNote(note);
         long opId = queueOperation("note", "UPDATE", note);
-        String q = "mutation($id:ID!,$titulo:String,$contenido:String,$idMateria:ID){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
+        String q = "mutation($id:ID!,$titulo:String,$contenido:String){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
         Map<String,Object> vars = new HashMap<>();
         vars.put("id", note.getId());
         vars.put("titulo", note.getTitle());
         vars.put("contenido", note.getContent());
-        vars.put("idMateria", note.getSubjectId());
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -781,8 +779,8 @@ public class TheCalendarRepository {
                         Map<String,Object> v=new HashMap<>(); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("fecha",t.getDueDate()); v.put("idMateria",t.getSubjectId());
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("UPDATE".equals(op.getAction())) {
-                        String m="mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean,$idMateria:ID){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
-                        Map<String,Object> v=new HashMap<>(); v.put("id",t.getId()); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("completada",t.isCompleted()); v.put("idMateria",t.getSubjectId());
+                        String m="mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
+                        Map<String,Object> v=new HashMap<>(); v.put("id",t.getId()); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("completada",t.isCompleted());
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m="mutation($id:ID!){ eliminarTarea(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id",t.getId());
@@ -796,8 +794,8 @@ public class TheCalendarRepository {
                         Map<String,Object> v=new HashMap<>(); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); v.put("idMateria",n.getSubjectId());
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("UPDATE".equals(op.getAction())) {
-                        String m="mutation($id:ID!,$titulo:String,$contenido:String,$idMateria:ID){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
-                        Map<String,Object> v=new HashMap<>(); v.put("id",n.getId()); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); v.put("idMateria",n.getSubjectId());
+                        String m="mutation($id:ID!,$titulo:String,$contenido:String){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
+                        Map<String,Object> v=new HashMap<>(); v.put("id",n.getId()); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent());
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m="mutation($id:ID!){ eliminarNota(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id",n.getId());
