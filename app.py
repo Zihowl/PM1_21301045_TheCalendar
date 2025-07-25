@@ -95,7 +95,7 @@ class Imagen(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, unique=True)
     ruta = db.Column(db.String(255), nullable=False)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha = db.Column(db.DateTime, default=datetime.now)
     usuario = db.relationship('Usuario', backref=db.backref('imagen', uselist=False))
 # --- 3. DECORADOR DE TOKEN Y UTILIDADES ---
 def token_required(f):

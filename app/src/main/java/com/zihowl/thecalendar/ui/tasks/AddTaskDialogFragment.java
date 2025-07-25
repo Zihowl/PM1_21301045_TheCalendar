@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 public class AddTaskDialogFragment extends DialogFragment {
@@ -134,13 +133,10 @@ public class AddTaskDialogFragment extends DialogFragment {
     private void showDatePicker() {
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Seleccionar fecha")
-                .setSelection(selectedDate != null ? selectedDate.getTime() : MaterialDatePicker.todayInUtcMilliseconds())
+                .setSelection(selectedDate != null ? selectedDate.getTime() : System.currentTimeMillis())
                 .build();
         datePicker.addOnPositiveButtonClickListener(selection -> {
-            // Se debe ajustar la zona horaria para evitar problemas de un día antes/después
-            TimeZone tz = TimeZone.getDefault();
-            long offset = tz.getOffset(selection);
-            selectedDate = new Date(selection + offset);
+            selectedDate = new Date(selection);
             updateDateLabel();
         });
         datePicker.show(getParentFragmentManager(), "DatePicker");
