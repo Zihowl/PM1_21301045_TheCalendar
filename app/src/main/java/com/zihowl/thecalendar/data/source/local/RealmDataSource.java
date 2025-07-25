@@ -88,6 +88,23 @@ public class RealmDataSource {
         }
     }
 
+    /**
+     * Replaces the ID of an existing subject with the new ID returned by the server.
+     */
+    public void replaceSubjectId(int localId, int remoteId) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                Subject current = r.where(Subject.class).equalTo("id", localId).findFirst();
+                if (current != null) {
+                    Subject copy = r.copyFromRealm(current);
+                    current.deleteFromRealm();
+                    copy.setId(remoteId);
+                    r.insertOrUpdate(copy);
+                }
+            });
+        }
+    }
+
     // --- Task ---
     public List<Task> getAllTasksForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
@@ -140,6 +157,23 @@ public class RealmDataSource {
         }
     }
 
+    /**
+     * Replace the local ID of a task with the ID assigned by the server.
+     */
+    public void replaceTaskId(int localId, int remoteId) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                Task current = r.where(Task.class).equalTo("id", localId).findFirst();
+                if (current != null) {
+                    Task copy = r.copyFromRealm(current);
+                    current.deleteFromRealm();
+                    copy.setId(remoteId);
+                    r.insertOrUpdate(copy);
+                }
+            });
+        }
+    }
+
     // --- Note ---
     public List<Note> getAllNotesForOwner(String owner) {
         try (Realm realm = Realm.getDefaultInstance()) {
@@ -187,6 +221,23 @@ public class RealmDataSource {
             realm.executeTransaction(r -> {
                 for (Note note : notes) {
                     r.where(Note.class).equalTo("id", note.getId()).findAll().deleteAllFromRealm();
+                }
+            });
+        }
+    }
+
+    /**
+     * Replace the local ID of a note with the ID assigned by the server.
+     */
+    public void replaceNoteId(int localId, int remoteId) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            realm.executeTransaction(r -> {
+                Note current = r.where(Note.class).equalTo("id", localId).findFirst();
+                if (current != null) {
+                    Note copy = r.copyFromRealm(current);
+                    current.deleteFromRealm();
+                    copy.setId(remoteId);
+                    r.insertOrUpdate(copy);
                 }
             });
         }

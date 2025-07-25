@@ -144,6 +144,13 @@ def add_column_if_missing(table, column, spec):
         db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {spec}"))
         db.session.commit()
 
+def add_index_if_missing(table, index_name, column):
+    inspector = inspect(db.engine)
+    existing = [ix['name'] for ix in inspector.get_indexes(table)]
+    if index_name not in existing:
+        db.session.execute(text(f"CREATE INDEX {index_name} ON {table} ({column})"))
+        db.session.commit()
+
 
 def parse_schedule_string(schedule_str):
     days = {
@@ -190,6 +197,10 @@ def apply_migrations():
     add_column_if_missing('horarios', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('horarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+
+    add_index_if_missing('materias', 'idx_materias_updated', 'updated_at')
+    add_index_if_missing('tareas', 'idx_tareas_updated', 'updated_at')
+    add_index_if_missing('notas', 'idx_notas_updated', 'updated_at')
 
 
 # --- 4. ESQUEMA GRAPHQL ---
