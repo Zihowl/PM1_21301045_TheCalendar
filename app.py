@@ -427,22 +427,25 @@ class DesvincularYEliminarMateria(graphene.Mutation):
 class CrearTarea(graphene.Mutation):
     class Arguments:
         titulo = graphene.String(required=True)
-        id_materia = graphene.ID(required=True)
+        id_materia = graphene.ID()
         descripcion = graphene.String()
         fecha_entrega = graphene.DateTime()
 
     tarea = graphene.Field(lambda: TareaType)
 
     @token_required
-    def mutate(root, info, titulo, id_materia, **kwargs):
-        try:
-            type_name, real_id_materia = from_global_id(id_materia)
-            if type_name != 'MateriaType': raise Exception("ID de Materia inválido")
-        except:
-            real_id_materia = int(id_materia)
+    def mutate(root, info, titulo, id_materia=None, **kwargs):
+        real_id_materia = None
+        if id_materia:
+            try:
+                type_name, real_id_materia = from_global_id(id_materia)
+                if type_name != 'MateriaType':
+                    raise Exception("ID de Materia inválido")
+            except Exception:
+                real_id_materia = int(id_materia)
 
-        if not db.session.get(Materia, real_id_materia):
-            raise Exception("Materia no encontrada.")
+            if not db.session.get(Materia, real_id_materia):
+                raise Exception("Materia no encontrada.")
 
         tarea = Tarea(titulo=titulo, id_materia=real_id_materia, id_usuario=info.context.user.id, **kwargs)
         db.session.add(tarea)
@@ -504,21 +507,24 @@ class EliminarTarea(graphene.Mutation):
 class CrearNota(graphene.Mutation):
     class Arguments:
         titulo = graphene.String(required=True)
-        id_materia = graphene.ID(required=True)
+        id_materia = graphene.ID()
         contenido = graphene.String()
 
     nota = graphene.Field(lambda: NotaType)
 
     @token_required
-    def mutate(root, info, titulo, id_materia, **kwargs):
-        try:
-            type_name, real_id_materia = from_global_id(id_materia)
-            if type_name != 'MateriaType': raise Exception("ID de Materia inválido")
-        except:
-            real_id_materia = int(id_materia)
+    def mutate(root, info, titulo, id_materia=None, **kwargs):
+        real_id_materia = None
+        if id_materia:
+            try:
+                type_name, real_id_materia = from_global_id(id_materia)
+                if type_name != 'MateriaType':
+                    raise Exception("ID de Materia inválido")
+            except Exception:
+                real_id_materia = int(id_materia)
 
-        if not db.session.get(Materia, real_id_materia):
-            raise Exception("Materia no encontrada.")
+            if not db.session.get(Materia, real_id_materia):
+                raise Exception("Materia no encontrada.")
 
         nota = Nota(titulo=titulo, id_materia=real_id_materia, id_usuario=info.context.user.id, **kwargs)
         db.session.add(nota)
