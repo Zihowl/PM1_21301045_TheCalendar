@@ -1,12 +1,13 @@
 import os
 from dotenv import load_dotenv
 import graphene
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from graphene_sqlalchemy import SQLAlchemyObjectType
 from sqlalchemy import func, inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import jwt
 from functools import wraps
 from datetime import datetime, timezone, timedelta
@@ -86,6 +87,13 @@ class Horario(db.Model):
     hora_fin = db.Column(db.Time, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Imagen(db.Model):
+    __tablename__ = 'imagenes'
+    id = db.Column(db.Integer, primary_key=True)
+    ruta = db.Column(db.String(255), nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # --- 3. DECORADOR DE TOKEN Y UTILIDADES ---
@@ -646,6 +654,26 @@ def login_user():
     token = jwt.encode({'id': usuario.id, 'exp': datetime.now(timezone.utc) + timedelta(hours=24)},
                        app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({'token': token})
+
+
+@app.route('/api/subir-imagen', methods=['POST'])
+def subir_imagen():
+    if 'imagen' not in request.files:
+        return jsonify({'error': 'No se encontró la imagen'}), 400
+    imagen = request.files['imagen']
+    nombre = secure_filename(imagen.filename)
+    os.makedirs('imagenes', exist_ok=True)
+    ruta = os.path.join('imagenes', nombre)
+    imagen.save(ruta)
+    nueva = Imagen(ruta=ruta)
+    db.session.add(nueva)
+    db.session.commit()
+    return jsonify({'mensaje': 'Imagen guardada', 'ruta': ruta})
+
+
+@app.route('/imagenes/<path:filename>')
+def imagenes(filename):
+    return send_from_directory('imagenes', filename)
 
 
 @app.route("/graphql", methods=["POST"])

@@ -15,6 +15,10 @@ public class RetrofitClient {
     // Usamos una URL pública de prueba por ahora.
     private static final String BASE_URL = "http://192.168.137.100:5000";
 
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
+
     public static Retrofit getClient(SessionManager sessionManager) {
         if (retrofit == null) {
             // Interceptor para ver los logs de las llamadas a la API en el Logcat.
