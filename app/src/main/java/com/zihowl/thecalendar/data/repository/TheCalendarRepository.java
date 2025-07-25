@@ -181,9 +181,11 @@ public class TheCalendarRepository {
                     List<Task> list = response.body().getData().getTodasMisTareas();
                     if (list != null) {
                         String owner = sessionManager.getUsername();
+                        java.util.Set<Integer> remoteIds = new java.util.HashSet<>();
                         for (Task t : list) {
                             t.setOwner(owner);
                             t.setDeleted(false);
+                            remoteIds.add(t.getId());
                             if (t.getSubjectId() != null) {
                                 Subject s = localDataSource.getSubjectById(t.getSubjectId());
                                 if (s != null) {
@@ -191,6 +193,11 @@ public class TheCalendarRepository {
                                 }
                             }
                             localDataSource.saveTask(t);
+                        }
+                        for (Task local : localDataSource.getAllTasksForOwner(owner)) {
+                            if (!remoteIds.contains(local.getId())) {
+                                localDataSource.deleteTasks(java.util.Collections.singletonList(local));
+                            }
                         }
                     }
                 } else if (response.errorBody() != null) {
@@ -221,9 +228,11 @@ public class TheCalendarRepository {
                     List<Note> list = response.body().getData().getTodasMisNotas();
                     if (list != null) {
                         String owner = sessionManager.getUsername();
+                        java.util.Set<Integer> remoteIds = new java.util.HashSet<>();
                         for (Note n : list) {
                             n.setOwner(owner);
                             n.setDeleted(false);
+                            remoteIds.add(n.getId());
                             if (n.getSubjectId() != null) {
                                 Subject s = localDataSource.getSubjectById(n.getSubjectId());
                                 if (s != null) {
@@ -231,6 +240,11 @@ public class TheCalendarRepository {
                                 }
                             }
                             localDataSource.saveNote(n);
+                        }
+                        for (Note local : localDataSource.getAllNotesForOwner(owner)) {
+                            if (!remoteIds.contains(local.getId())) {
+                                localDataSource.deleteNotes(java.util.Collections.singletonList(local));
+                            }
                         }
                     }
                 } else if (response.errorBody() != null) {
@@ -751,6 +765,7 @@ public class TheCalendarRepository {
         if (!isLoggedIn()) return;
         // Subir operaciones pendientes
         for (PendingOperation op : localDataSource.getAllPendingOperations()) {
+            boolean success = false;
             switch (op.getEntity()) {
                 case "subject":
                     Subject s = gson.fromJson(op.getPayload(), Subject.class);
@@ -760,7 +775,21 @@ public class TheCalendarRepository {
                         v.put("nombre", s.getName());
                         v.put("profesor", s.getProfessorName());
                         v.put("horario", s.getSchedule());
-                        api.mutate(new GraphQLRequest(m, v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m, v)).execute();
+                        if (resp.isSuccessful() && resp.body() != null && resp.body().getData() != null) {
+                            try {
+                                Map<?,?> data = (Map<?,?>) resp.body().getData();
+                                Map<?,?> crearMateria = (Map<?,?>) data.get("crearMateria");
+                                Map<?,?> materia = (Map<?,?>) crearMateria.get("materia");
+                                Number newId = (Number) materia.get("id");
+                                if (newId != null) {
+                                    localDataSource.replaceSubjectId(s.getId(), newId.intValue());
+                                }
+                                success = true;
+                            } catch (Exception e) {
+                                Log.e("Repo", "Error parsing create subject", e);
+                            }
+                        }
                     } else if ("UPDATE".equals(op.getAction())) {
                         String m = "mutation($id:ID!,$nombre:String,$profesor:String,$horario:String){ actualizarMateria(id:$id,nombre:$nombre,profesor:$profesor,horario:$horario){ materia{ id: dbId } } }";
                         Map<String,Object> v = new HashMap<>();
@@ -768,14 +797,17 @@ public class TheCalendarRepository {
                         v.put("nombre", s.getName());
                         v.put("profesor", s.getProfessorName());
                         v.put("horario", s.getSchedule());
-                        api.mutate(new GraphQLRequest(m, v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m, v)).execute();
+                        success = resp.isSuccessful();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m = "mutation($id:ID!){ eliminarMateria(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id", s.getId());
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        success = resp.isSuccessful();
                     } else if ("UNLINK_DELETE".equals(op.getAction())) {
                         String m = "mutation($id:ID!){ desvincularYEliminarMateria(id:$id){ ok }}"; Map<String,Object> v = new HashMap<>();
                         v.put("id", s.getId());
-                        api.mutate(new GraphQLRequest(m, v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m, v)).execute();
+                        success = resp.isSuccessful();
                     }
                     break;
                 case "task":
@@ -783,14 +815,30 @@ public class TheCalendarRepository {
                     if ("CREATE".equals(op.getAction())) {
                         String m="mutation($titulo:String!,$descripcion:String,$fecha:DateTime,$idMateria:ID){ crearTarea(titulo:$titulo,idMateria:$idMateria,descripcion:$descripcion,fechaEntrega:$fecha){ tarea{ id: dbId } } }";
                         Map<String,Object> v=new HashMap<>(); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("fecha",t.getDueDate()); if(t.getSubjectId()!=null){ v.put("idMateria",t.getSubjectId()); }
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        if (resp.isSuccessful() && resp.body() != null && resp.body().getData() != null) {
+                            try {
+                                Map<?,?> data = (Map<?,?>) resp.body().getData();
+                                Map<?,?> crearTarea = (Map<?,?>) data.get("crearTarea");
+                                Map<?,?> tarea = (Map<?,?>) crearTarea.get("tarea");
+                                Number newId = (Number) tarea.get("id");
+                                if (newId != null) {
+                                    localDataSource.replaceTaskId(t.getId(), newId.intValue());
+                                }
+                                success = true;
+                            } catch (Exception e) {
+                                Log.e("Repo", "Error parsing create task", e);
+                            }
+                        }
                     } else if ("UPDATE".equals(op.getAction())) {
                         String m="mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean,$idMateria:ID){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada,idMateria:$idMateria){ tarea{ id: dbId } } }";
                         Map<String,Object> v=new HashMap<>(); v.put("id",t.getId()); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("completada",t.isCompleted()); if(t.getSubjectId()!=null){ v.put("idMateria",t.getSubjectId()); } else { v.put("idMateria",null); }
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        success = resp.isSuccessful();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m="mutation($id:ID!){ eliminarTarea(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id",t.getId());
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        success = resp.isSuccessful();
                     }
                     break;
                 case "note":
@@ -798,18 +846,36 @@ public class TheCalendarRepository {
                     if ("CREATE".equals(op.getAction())) {
                         String m="mutation($titulo:String!,$contenido:String,$idMateria:ID){ crearNota(titulo:$titulo,idMateria:$idMateria,contenido:$contenido){ nota{ id: dbId } } }";
                         Map<String,Object> v=new HashMap<>(); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); if(n.getSubjectId()!=null){ v.put("idMateria",n.getSubjectId()); }
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        if (resp.isSuccessful() && resp.body() != null && resp.body().getData() != null) {
+                            try {
+                                Map<?,?> data = (Map<?,?>) resp.body().getData();
+                                Map<?,?> crearNota = (Map<?,?>) data.get("crearNota");
+                                Map<?,?> nota = (Map<?,?>) crearNota.get("nota");
+                                Number newId = (Number) nota.get("id");
+                                if (newId != null) {
+                                    localDataSource.replaceNoteId(n.getId(), newId.intValue());
+                                }
+                                success = true;
+                            } catch (Exception e) {
+                                Log.e("Repo", "Error parsing create note", e);
+                            }
+                        }
                     } else if ("UPDATE".equals(op.getAction())) {
                         String m="mutation($id:ID!,$titulo:String,$contenido:String,$idMateria:ID){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido,idMateria:$idMateria){ nota{ id: dbId } } }";
                         Map<String,Object> v=new HashMap<>(); v.put("id",n.getId()); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); if(n.getSubjectId()!=null){ v.put("idMateria",n.getSubjectId()); } else { v.put("idMateria",null); }
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        success = resp.isSuccessful();
                     } else if ("DELETE".equals(op.getAction())) {
                         String m="mutation($id:ID!){ eliminarNota(id:$id){ ok }}"; Map<String,Object> v=new HashMap<>(); v.put("id",n.getId());
-                        api.mutate(new GraphQLRequest(m,v)).execute();
+                        Response<GraphQLResponse<Object>> resp = api.mutate(new GraphQLRequest(m,v)).execute();
+                        success = resp.isSuccessful();
                     }
                     break;
             }
-            localDataSource.deletePendingOperation(op.getId());
+            if (success) {
+                localDataSource.deletePendingOperation(op.getId());
+            }
         }
 
         // Descargar datos remotos y guardarlos localmente
@@ -834,9 +900,11 @@ public class TheCalendarRepository {
         Response<GraphQLResponse<TasksData>> tasksRes = api.getTasks(new GraphQLRequest("query{todasMisTareas{ id: dbId titulo descripcion fecha_entrega: fechaEntrega completada id_materia: idMateria }}")).execute();
         if (tasksRes.isSuccessful() && tasksRes.body() != null && tasksRes.body().getData() != null) {
             String owner = sessionManager.getUsername();
+            java.util.Set<Integer> remoteTaskIds = new java.util.HashSet<>();
             for (Task t : tasksRes.body().getData().getTodasMisTareas()) {
                 t.setOwner(owner);
                 t.setDeleted(false);
+                remoteTaskIds.add(t.getId());
                 if (t.getSubjectId() != null) {
                     Subject s = localDataSource.getSubjectById(t.getSubjectId());
                     if (s != null) {
@@ -845,14 +913,21 @@ public class TheCalendarRepository {
                 }
                 localDataSource.saveTask(t);
             }
+            for (Task local : localDataSource.getAllTasksForOwner(owner)) {
+                if (!remoteTaskIds.contains(local.getId())) {
+                    localDataSource.deleteTasks(java.util.Collections.singletonList(local));
+                }
+            }
         }
 
         Response<GraphQLResponse<NotesData>> notesRes = api.getNotes(new GraphQLRequest("query{todasMisNotas{ id: dbId titulo contenido id_materia: idMateria }}")).execute();
         if (notesRes.isSuccessful() && notesRes.body() != null && notesRes.body().getData() != null) {
             String owner = sessionManager.getUsername();
+            java.util.Set<Integer> remoteNoteIds = new java.util.HashSet<>();
             for (Note n : notesRes.body().getData().getTodasMisNotas()) {
                 n.setOwner(owner);
                 n.setDeleted(false);
+                remoteNoteIds.add(n.getId());
                 if (n.getSubjectId() != null) {
                     Subject s = localDataSource.getSubjectById(n.getSubjectId());
                     if (s != null) {
@@ -860,6 +935,11 @@ public class TheCalendarRepository {
                     }
                 }
                 localDataSource.saveNote(n);
+            }
+            for (Note local : localDataSource.getAllNotesForOwner(owner)) {
+                if (!remoteNoteIds.contains(local.getId())) {
+                    localDataSource.deleteNotes(java.util.Collections.singletonList(local));
+                }
             }
         }
 
