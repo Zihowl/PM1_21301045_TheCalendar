@@ -791,4 +791,11 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         apply_migrations()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    port = int(os.getenv('PORT', '5000'))
+    cert = os.getenv('SSL_CERT')
+    key = os.getenv('SSL_KEY')
+    ssl_context = (cert, key) if cert and key else None
+
+    app.run(host='0.0.0.0', port=port, debug=debug_mode, ssl_context=ssl_context)
