@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from graphene_sqlalchemy import SQLAlchemyObjectType
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
@@ -48,7 +48,9 @@ class Materia(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tareas = db.relationship('Tarea', backref='materia', lazy='subquery')
     notas = db.relationship('Nota', backref='materia', lazy='subquery')
-    horarios = db.relationship('Horario', backref='materia', cascade="all, delete-orphan")
+    horarios = db.relationship(
+        'Horario', backref='materia', cascade="all, delete-orphan", lazy='subquery'
+    )
 
 
 class Tarea(db.Model):
@@ -194,7 +196,7 @@ class Query(graphene.ObjectType):
     mis_materias = graphene.List(MateriaType)
     todas_mis_tareas = graphene.List(TareaType)
     todas_mis_notas = graphene.List(NotaType)
-    datos_actualizados = graphene.Field(DatosActualizados, desde=graphene.DateTime(required=True))
+    datos_actualizados = graphene.Field(DatosActualizados, desde=graphene.DateTime())
 
     @token_required
     def resolve_mis_materias(root, info):
@@ -209,13 +211,25 @@ class Query(graphene.ObjectType):
         return db.session.query(Nota).filter_by(id_usuario=info.context.user.id).order_by(Nota.titulo).all()
 
     @token_required
-    def resolve_datos_actualizados(root, info, desde):
+    def resolve_datos_actualizados(root, info, desde=None):
         uid = info.context.user.id
+
+        q_materias = db.session.query(Materia).filter(Materia.id_usuario == uid)
+        q_tareas = db.session.query(Tarea).filter(Tarea.id_usuario == uid)
+        q_notas = db.session.query(Nota).filter(Nota.id_usuario == uid)
+        q_horarios = db.session.query(Horario).join(Materia).filter(Materia.id_usuario == uid)
+
+        if desde:
+            q_materias = q_materias.filter(Materia.updated_at >= desde)
+            q_tareas = q_tareas.filter(Tarea.updated_at >= desde)
+            q_notas = q_notas.filter(Nota.updated_at >= desde)
+            q_horarios = q_horarios.filter(Horario.updated_at >= desde)
+
         return DatosActualizados(
-            materias=db.session.query(Materia).filter(Materia.id_usuario == uid, Materia.updated_at >= desde).all(),
-            tareas=db.session.query(Tarea).filter(Tarea.id_usuario == uid, Tarea.updated_at >= desde).all(),
-            notas=db.session.query(Nota).filter(Nota.id_usuario == uid, Nota.updated_at >= desde).all(),
-            horarios=db.session.query(Horario).join(Materia).filter(Materia.id_usuario == uid, Horario.updated_at >= desde).all(),
+            materias=q_materias.all(),
+            tareas=q_tareas.all(),
+            notas=q_notas.all(),
+            horarios=q_horarios.all(),
         )
 
 
