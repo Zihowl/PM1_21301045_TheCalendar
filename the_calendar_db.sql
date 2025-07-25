@@ -45,6 +45,7 @@ CREATE TABLE `horarios` (
 
 CREATE TABLE `imagenes` (
   `id` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
   `ruta` varchar(255) NOT NULL,
   `fecha` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -53,9 +54,9 @@ CREATE TABLE `imagenes` (
 -- Volcado de datos para la tabla `imagenes`
 --
 
-INSERT INTO `imagenes` (`id`, `ruta`, `fecha`) VALUES
-(1, 'imagenes\\profile7821276593364639404.jpg', '2025-07-25 07:02:18'),
-(2, 'imagenes\\profile7187490391234015396.jpg', '2025-07-25 07:02:33');
+INSERT INTO `imagenes` (`id`, `id_usuario`, `ruta`, `fecha`) VALUES
+(1, 1, 'imagenes/profile7821276593364639404.jpg', '2025-07-25 07:02:18'),
+(2, 2, 'imagenes/profile7187490391234015396.jpg', '2025-07-25 07:02:33');
 
 -- --------------------------------------------------------
 
@@ -136,7 +137,8 @@ ALTER TABLE `horarios`
 -- Indices de la tabla `imagenes`
 --
 ALTER TABLE `imagenes`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `id_usuario` (`id_usuario`);
 
 --
 -- Indices de la tabla `materias`
@@ -237,6 +239,8 @@ ALTER TABLE `notas`
 ALTER TABLE `tareas`
   ADD CONSTRAINT `tareas_ibfk_1` FOREIGN KEY (`id_materia`) REFERENCES `materias` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tareas_ibfk_2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+ALTER TABLE `imagenes`
+  ADD CONSTRAINT `imagenes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

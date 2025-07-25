@@ -93,8 +93,10 @@ class Horario(db.Model):
 class Imagen(db.Model):
     __tablename__ = 'imagenes'
     id = db.Column(db.Integer, primary_key=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, unique=True)
     ruta = db.Column(db.String(255), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    usuario = db.relationship('Usuario', backref=db.backref('imagen', uselist=False))
 # --- 3. DECORADOR DE TOKEN Y UTILIDADES ---
 def token_required(f):
     @wraps(f)
@@ -175,6 +177,7 @@ def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     add_column_if_missing('usuarios', 'foto_perfil', 'VARCHAR(255)')
+    add_column_if_missing('imagenes', 'id_usuario', 'INTEGER UNIQUE')
     add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('materias', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -676,7 +679,8 @@ def login_user():
         app.config['SECRET_KEY'],
         algorithm="HS256"
     )
-    return jsonify({'token': token, 'foto_perfil': usuario.foto_perfil})
+    foto = usuario.foto_perfil.replace('\\', '/') if usuario.foto_perfil else None
+    return jsonify({'token': token, 'foto_perfil': foto})
 
 
 @app.route('/api/subir-imagen', methods=['POST'])
@@ -687,13 +691,21 @@ def subir_imagen():
     imagen = request.files['imagen']
     nombre = secure_filename(imagen.filename)
     os.makedirs('imagenes', exist_ok=True)
-    ruta = os.path.join('imagenes', nombre)
+    ruta = f'imagenes/{nombre}'
     imagen.save(ruta)
-    nueva = Imagen(ruta=ruta)
+
+    if g.user.foto_perfil:
+        try:
+            os.remove(g.user.foto_perfil)
+        except Exception:
+            pass
+        Imagen.query.filter_by(id_usuario=g.user.id).delete()
+
+    nueva = Imagen(ruta=ruta, id_usuario=g.user.id)
     db.session.add(nueva)
     g.user.foto_perfil = ruta
     db.session.commit()
-    return jsonify({'mensaje': 'Imagen guardada', 'ruta': ruta})
+    return jsonify({'mensaje': 'Imagen guardada', 'ruta': ruta.replace('\\', '/')})
 
 
 @app.route('/imagenes/<path:filename>')
