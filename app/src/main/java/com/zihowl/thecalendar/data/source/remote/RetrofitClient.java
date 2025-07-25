@@ -1,5 +1,6 @@
 package com.zihowl.thecalendar.data.source.remote;
 
+import com.zihowl.thecalendar.BuildConfig;
 import com.zihowl.thecalendar.data.session.SessionManager;
 
 import okhttp3.OkHttpClient;
@@ -15,7 +16,7 @@ public class RetrofitClient {
     
     // URL base para las peticiones. Cuando tengas tu backend, la cambiarás.
     // Usamos una URL pública de prueba por ahora.
-    private static final String BASE_URL = "http://192.168.0.96:5000";
+    private static final String BASE_URL = BuildConfig.API_BASE_URL;
 
     public static String getBaseUrl() {
         return BASE_URL;
