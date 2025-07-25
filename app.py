@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from graphene_sqlalchemy import SQLAlchemyObjectType
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
