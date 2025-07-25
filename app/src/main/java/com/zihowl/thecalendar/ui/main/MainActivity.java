@@ -115,18 +115,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             } else if (status == SyncStatus.CONNECTED) {
                 text = pending ? getString(R.string.sync_pending)
                         : getString(R.string.sync_connected);
+                subjectsViewModel.loadSubjects();
+                tasksViewModel.loadTasks();
+                notesViewModel.loadNotes();
             } else { // COMPLETE
                 text = pending ? getString(R.string.sync_pending)
                         : getString(R.string.sync_complete);
+                subjectsViewModel.loadSubjects();
+                tasksViewModel.loadTasks();
+                notesViewModel.loadNotes();
             }
             headerStatus.setText(text);
         });
+        setupViewModels();
 
         if (authRepository.getSessionManager().getToken() != null) {
             syncManager.scheduleSync();
         }
-
-        setupViewModels();
         setupToolbarAndDrawer();
         setupViewPagerAndTabs();
 
