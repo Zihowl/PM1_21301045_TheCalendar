@@ -459,11 +459,12 @@ class ActualizarTarea(graphene.Mutation):
         titulo = graphene.String()
         descripcion = graphene.String()
         completada = graphene.Boolean()
+        id_materia = graphene.ID()
 
     tarea = graphene.Field(lambda: TareaType)
 
     @token_required
-    def mutate(root, info, id, **kwargs):
+    def mutate(root, info, id, id_materia=None, **kwargs):
         try:
             type_name, real_id = from_global_id(id)
             if type_name != 'TareaType': raise Exception("ID de Tarea inválido")
@@ -473,6 +474,20 @@ class ActualizarTarea(graphene.Mutation):
         tarea = db.session.get(Tarea, real_id)
         if not tarea or tarea.id_usuario != info.context.user.id:
             raise Exception("Tarea no encontrada.")
+
+        if id_materia is not None:
+            if id_materia == "":
+                tarea.id_materia = None
+            else:
+                try:
+                    type_name, real_id_materia = from_global_id(id_materia)
+                    if type_name != 'MateriaType':
+                        raise Exception("ID de Materia inválido")
+                except Exception:
+                    real_id_materia = int(id_materia)
+                if real_id_materia and not db.session.get(Materia, real_id_materia):
+                    raise Exception("Materia no encontrada.")
+                tarea.id_materia = real_id_materia
 
         for key, value in kwargs.items():
             setattr(tarea, key, value)
@@ -537,11 +552,12 @@ class ActualizarNota(graphene.Mutation):
         id = graphene.ID(required=True)
         titulo = graphene.String()
         contenido = graphene.String()
+        id_materia = graphene.ID()
 
     nota = graphene.Field(lambda: NotaType)
 
     @token_required
-    def mutate(root, info, id, **kwargs):
+    def mutate(root, info, id, id_materia=None, **kwargs):
         try:
             type_name, real_id = from_global_id(id)
             if type_name != 'NotaType': raise Exception("ID de Nota inválido")
@@ -552,8 +568,24 @@ class ActualizarNota(graphene.Mutation):
         if not nota or nota.id_usuario != info.context.user.id:
             raise Exception("Nota no encontrada.")
 
-        if 'titulo' in kwargs: nota.titulo = kwargs['titulo']
-        if 'contenido' in kwargs: nota.contenido = kwargs['contenido']
+        if id_materia is not None:
+            if id_materia == "":
+                nota.id_materia = None
+            else:
+                try:
+                    type_name, real_id_materia = from_global_id(id_materia)
+                    if type_name != 'MateriaType':
+                        raise Exception("ID de Materia inválido")
+                except Exception:
+                    real_id_materia = int(id_materia)
+                if real_id_materia and not db.session.get(Materia, real_id_materia):
+                    raise Exception("Materia no encontrada.")
+                nota.id_materia = real_id_materia
+
+        if 'titulo' in kwargs:
+            nota.titulo = kwargs['titulo']
+        if 'contenido' in kwargs:
+            nota.contenido = kwargs['contenido']
 
         db.session.commit()
         return ActualizarNota(nota=nota)
