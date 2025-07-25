@@ -3,5 +3,7 @@
     <style name="Base.Theme.TheCalendar" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Ensure the status bar matches the toolbar/tab color -->
+        <item name="android:statusBarColor">@color/purpledefault</item>
     </style>
 </resources>

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginStart="16dp"
+    android:layout_marginStart="10dp"
     android:layout_marginEnd="16dp"
     android:padding="6dp">
 
@@ -20,7 +20,7 @@
         android:background="?attr/selectableItemBackground"
         android:minHeight="48dp"
         android:drawablePadding="32dp"
-        android:drawableStart="@drawable/ic_sync"
-        android:textColor="?android:attr/textColorPrimary" />
+        android:textColor="?android:attr/textColorPrimary"
+        app:drawableStartCompat="@drawable/ic_sync" />
 
 </LinearLayout>
