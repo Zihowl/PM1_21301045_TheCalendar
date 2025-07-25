@@ -11,7 +11,9 @@ import com.zihowl.thecalendar.data.source.remote.graphql.NotesData;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
+import retrofit2.http.Part;
 
 /**
  * Endpoints para autenticación REST y operaciones GraphQL.
@@ -38,4 +40,12 @@ public interface ApiService {
     // --- Mutaciones GraphQL ---
     @POST("graphql")
     Call<GraphQLResponse<Object>> mutate(@Body GraphQLRequest body);
+
+    // --- Subir imagen de perfil ---
+    @Multipart
+    @POST("api/subir-imagen")
+    Call<com.zihowl.thecalendar.data.model.ImageUploadResponse> uploadImage(
+            @Part okhttp3.MultipartBody.Part imagen,
+            @Part("nombre") okhttp3.RequestBody nombre
+    );
 }
