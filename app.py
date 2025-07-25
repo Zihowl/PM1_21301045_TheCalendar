@@ -794,8 +794,8 @@ if __name__ == '__main__':
 
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     port = int(os.getenv('PORT', '5000'))
-    cert = os.getenv('SSL_CERT')
-    key = os.getenv('SSL_KEY')
+    cert = os.getenv('SSL_CERT', 'cert.pem')
+    key = os.getenv('SSL_KEY', 'key.pem')
     ssl_context = (cert, key) if cert and key else None
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode, ssl_context=ssl_context)
