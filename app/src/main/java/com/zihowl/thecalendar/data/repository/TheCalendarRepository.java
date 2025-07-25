@@ -357,7 +357,9 @@ public class TheCalendarRepository {
         vars.put("titulo", task.getTitle());
         vars.put("descripcion", task.getDescription());
         vars.put("fecha", task.getDueDate());
-        vars.put("idMateria", task.getSubjectId());
+        if (task.getSubjectId() != null) {
+            vars.put("idMateria", task.getSubjectId());
+        }
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(q, vars)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -408,7 +410,9 @@ public class TheCalendarRepository {
         Map<String,Object> varsN = new HashMap<>();
         varsN.put("titulo", note.getTitle());
         varsN.put("contenido", note.getContent());
-        varsN.put("idMateria", note.getSubjectId());
+        if (note.getSubjectId() != null) {
+            varsN.put("idMateria", note.getSubjectId());
+        }
         if (isLoggedIn()) {
             remoteDataSource.mutate(new GraphQLRequest(qn, varsN)).enqueue(new Callback<GraphQLResponse<Object>>() {
                 @Override
@@ -776,7 +780,7 @@ public class TheCalendarRepository {
                     Task t = gson.fromJson(op.getPayload(), Task.class);
                     if ("CREATE".equals(op.getAction())) {
                         String m="mutation($titulo:String!,$descripcion:String,$fecha:DateTime,$idMateria:ID){ crearTarea(titulo:$titulo,idMateria:$idMateria,descripcion:$descripcion,fechaEntrega:$fecha){ tarea{ id: dbId } } }";
-                        Map<String,Object> v=new HashMap<>(); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("fecha",t.getDueDate()); v.put("idMateria",t.getSubjectId());
+                        Map<String,Object> v=new HashMap<>(); v.put("titulo",t.getTitle()); v.put("descripcion",t.getDescription()); v.put("fecha",t.getDueDate()); if(t.getSubjectId()!=null){ v.put("idMateria",t.getSubjectId()); }
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("UPDATE".equals(op.getAction())) {
                         String m="mutation($id:ID!,$titulo:String,$descripcion:String,$completada:Boolean){ actualizarTarea(id:$id,titulo:$titulo,descripcion:$descripcion,completada:$completada){ tarea{ id: dbId } } }";
@@ -791,7 +795,7 @@ public class TheCalendarRepository {
                     Note n = gson.fromJson(op.getPayload(), Note.class);
                     if ("CREATE".equals(op.getAction())) {
                         String m="mutation($titulo:String!,$contenido:String,$idMateria:ID){ crearNota(titulo:$titulo,idMateria:$idMateria,contenido:$contenido){ nota{ id: dbId } } }";
-                        Map<String,Object> v=new HashMap<>(); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); v.put("idMateria",n.getSubjectId());
+                        Map<String,Object> v=new HashMap<>(); v.put("titulo",n.getTitle()); v.put("contenido",n.getContent()); if(n.getSubjectId()!=null){ v.put("idMateria",n.getSubjectId()); }
                         api.mutate(new GraphQLRequest(m,v)).execute();
                     } else if ("UPDATE".equals(op.getAction())) {
                         String m="mutation($id:ID!,$titulo:String,$contenido:String){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
