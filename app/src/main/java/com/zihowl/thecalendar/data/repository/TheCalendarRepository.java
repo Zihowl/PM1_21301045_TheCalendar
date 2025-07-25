@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import retrofit2.Call;
@@ -110,6 +111,7 @@ public class TheCalendarRepository {
                         String owner = sessionManager.getUsername();
                         for (Subject s : list) {
                             s.setOwner(owner);
+                            s.setDeleted(false);
                             localDataSource.saveSubject(s);
                         }
                     }
@@ -144,6 +146,7 @@ public class TheCalendarRepository {
                         String owner = sessionManager.getUsername();
                         for (Task t : list) {
                             t.setOwner(owner);
+                            t.setDeleted(false);
                             if (t.getSubjectId() != null) {
                                 Subject s = localDataSource.getSubjectById(t.getSubjectId());
                                 if (s != null) {
@@ -183,6 +186,7 @@ public class TheCalendarRepository {
                         String owner = sessionManager.getUsername();
                         for (Note n : list) {
                             n.setOwner(owner);
+                            n.setDeleted(false);
                             if (n.getSubjectId() != null) {
                                 Subject s = localDataSource.getSubjectById(n.getSubjectId());
                                 if (s != null) {
@@ -211,6 +215,7 @@ public class TheCalendarRepository {
 
     public void addSubject(Subject subject) {
         subject.setOwner(sessionManager.getUsername());
+        subject.setDeleted(false);
         localDataSource.saveSubject(subject); // Respuesta rápida en UI
         long opId = queueOperation("subject", "CREATE", subject);
         String q = "mutation($nombre:String!,$profesor:String,$horario:String){ crearMateria(nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
@@ -254,6 +259,7 @@ public class TheCalendarRepository {
      */
     public void updateSubject(Subject subject) {
         subject.setOwner(sessionManager.getUsername());
+        subject.setDeleted(false);
         localDataSource.saveSubject(subject);
         long opId = queueOperation("subject", "UPDATE", subject);
         String q = "mutation($id:ID!,$nombre:String,$profesor:String,$horario:String){ actualizarMateria(id:$id, nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
@@ -283,6 +289,8 @@ public class TheCalendarRepository {
 
     public void addTask(Task task) {
         task.setOwner(sessionManager.getUsername());
+        task.setDeleted(false);
+        task.setDeleted(false);
         Subject s = localDataSource.getSubjectByName(task.getSubjectName());
         if (s != null) task.setSubjectId(s.getId());
         localDataSource.saveTask(task); // Guardado local primero
@@ -327,6 +335,10 @@ public class TheCalendarRepository {
 
     public void addNote(Note note) {
         note.setOwner(sessionManager.getUsername());
+        note.setDeleted(false);
+        note.setDeleted(false);
+        note.setDeleted(false);
+        note.setDeleted(false);
         Subject s = localDataSource.getSubjectByName(note.getSubjectName());
         if (s != null) note.setSubjectId(s.getId());
         localDataSource.saveNote(note); // Guardado local primero
@@ -410,6 +422,7 @@ public class TheCalendarRepository {
                         Log.e("Repo", "Error al desvincular/eliminar materia: " + response.code());
                     } else {
                         localDataSource.deletePendingOperation(opId);
+                        localDataSource.removeSubject(subjectId);
                     }
                 }
 
@@ -437,8 +450,8 @@ public class TheCalendarRepository {
                         if (!response.isSuccessful()) {
                             Log.e("Repo", "Error al eliminar materia: " + response.code());
                         } else {
-                            localDataSource.deletePendingOperation(opId);
-                        }
+                        localDataSource.deletePendingOperation(opId);
+                    }
                     }
 
                     @Override
@@ -505,7 +518,7 @@ public class TheCalendarRepository {
         Subject s = localDataSource.getSubjectByName(note.getSubjectName());
         if (s != null) note.setSubjectId(s.getId());
         localDataSource.saveNote(note);
-        long opId = queueOperation("note", "UPDATE", note);localDataSource.saveNote(note);
+        long opId = queueOperation("note", "UPDATE", note);
         String q = "mutation($id:ID!,$titulo:String,$contenido:String,$idMateria:ID){ actualizarNota(id:$id,titulo:$titulo,contenido:$contenido){ nota{ id: dbId } } }";
         Map<String,Object> vars = new HashMap<>();
         vars.put("id", note.getId());
@@ -538,7 +551,7 @@ public class TheCalendarRepository {
     }
 
     public void deleteTasks(List<Task> tasks) {
-        localDataSource.deleteTasks(tasks);
+        localDataSource.markTasksDeleted(tasks);
         for (Task t : tasks) {
             long opId = queueOperation("task", "DELETE", t);
             String q = "mutation($id:ID!){ eliminarTarea(id:$id){ ok }}";
@@ -552,6 +565,7 @@ public class TheCalendarRepository {
                             Log.e("Repo", "Error al eliminar tarea: " + response.code());
                         } else {
                             localDataSource.deletePendingOperation(opId);
+                            localDataSource.deleteTasks(Collections.singletonList(t));
                         }
                     }
 
@@ -570,7 +584,7 @@ public class TheCalendarRepository {
     }
 
     public void deleteNotes(List<Note> notes) {
-        localDataSource.deleteNotes(notes);
+        localDataSource.markNotesDeleted(notes);
         for (Note n : notes) {
             long opId = queueOperation("note", "DELETE", n);
             String qn = "mutation($id:ID!){ eliminarNota(id:$id){ ok }}";
@@ -584,6 +598,7 @@ public class TheCalendarRepository {
                             Log.e("Repo", "Error al eliminar nota: " + response.code());
                         } else {
                             localDataSource.deletePendingOperation(opId);
+                            localDataSource.deleteNotes(Collections.singletonList(n));
                         }
                     }
 
@@ -724,6 +739,7 @@ public class TheCalendarRepository {
             String owner = sessionManager.getUsername();
             for (Subject s : subjectsRes.body().getData().getMisMaterias()) {
                 s.setOwner(owner);
+                s.setDeleted(false);
                 localDataSource.saveSubject(s);
             }
         }
@@ -733,6 +749,7 @@ public class TheCalendarRepository {
             String owner = sessionManager.getUsername();
             for (Task t : tasksRes.body().getData().getTodasMisTareas()) {
                 t.setOwner(owner);
+                t.setDeleted(false);
                 if (t.getSubjectId() != null) {
                     Subject s = localDataSource.getSubjectById(t.getSubjectId());
                     if (s != null) {
@@ -748,6 +765,7 @@ public class TheCalendarRepository {
             String owner = sessionManager.getUsername();
             for (Note n : notesRes.body().getData().getTodasMisNotas()) {
                 n.setOwner(owner);
+                n.setDeleted(false);
                 if (n.getSubjectId() != null) {
                     Subject s = localDataSource.getSubjectById(n.getSubjectId());
                     if (s != null) {

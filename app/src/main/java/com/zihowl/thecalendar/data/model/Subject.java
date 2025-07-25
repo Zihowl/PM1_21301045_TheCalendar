@@ -20,6 +20,10 @@ public class Subject extends RealmObject implements Serializable {
     private int tasksPending;
     private int notesCount;
 
+    // Indica si el registro se marcó como eliminado pero aún no se ha
+    // sincronizado con el servidor (tombstone).
+    private boolean deleted;
+
     // Almacena el usuario dueño del registro para separar los datos locales
     private String owner;
 
@@ -50,6 +54,7 @@ public class Subject extends RealmObject implements Serializable {
     public int getTasksPending() { return tasksPending; }
     public int getNotesCount() { return notesCount; }
     public String getOwner() { return owner; }
+    public boolean isDeleted() { return deleted; }
 
     // Setters
     public void setId(int id) { this.id = id; }
@@ -59,6 +64,7 @@ public class Subject extends RealmObject implements Serializable {
     public void setTasksPending(int tasksPending) { this.tasksPending = tasksPending; }
     public void setNotesCount(int notesCount) { this.notesCount = notesCount; }
     public void setOwner(String owner) { this.owner = owner; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 
     @Override
     public boolean equals(Object o) {
