@@ -47,6 +47,8 @@
     <string name="sync_syncing">Sincronizando…</string>
     <string name="sync_complete">Sync completa</string>
     <string name="sync_error">Error de sync</string>
+    <string name="sync_pending">Cambios pendientes</string>
+    <string name="action_sync">Sincronizar</string>
     <string name="continue_without_account">Continuar sin cuenta</string>
     <string name="no_subjects">No hay materias registradas</string>
     <string name="no_tasks">No hay tareas registradas</string>
