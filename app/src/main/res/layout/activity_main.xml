@@ -24,6 +24,8 @@
         app:headerLayout="@layout/nav_header_with_sync"
         app:menu="@menu/activity_main_drawer">
 
+        <include layout="@layout/nav_sync_button"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
