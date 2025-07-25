@@ -1,12 +1,13 @@
 {
   "project_info": {
-    "project_number": "1234567890",
-    "project_id": "placeholder-project"
+    "project_number": "303268574092",
+    "project_id": "thecalendar-918a2",
+    "storage_bucket": "thecalendar-918a2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1234567890:android:abcdef0123456789",
+        "mobilesdk_app_id": "1:303268574092:android:2f00e4e3276a79dd661ca9",
         "android_client_info": {
           "package_name": "com.zihowl.thecalendar"
         }
@@ -14,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "PLACEHOLDER_KEY"
+          "current_key": "AIzaSyDrM5mcGnOvVBxUN8wni6mF2aj3dSsqeK8"
         }
       ],
       "services": {
