@@ -52,9 +52,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private TextView headerUser;
     private TextView headerStatus;
     private android.widget.ImageView headerProfileImage;
+    private View syncButton;
     private static final int PICK_IMAGE_REQUEST = 1001;
     private AuthRepository authRepository;
     private SyncManager syncManager;
+    private TheCalendarRepository repository;
 
     private SubjectsViewModel subjectsViewModel;
     private TasksViewModel tasksViewModel;
@@ -74,12 +76,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         authRepository = new AuthRepository(this);
         syncManager = SyncManager.getInstance(this);
+        repository = TheCalendarRepository.getInstance(new RealmDataSource(), authRepository.getSessionManager());
 
         NavigationView navigationView = findViewById(R.id.nav_view);
         View header = navigationView.getHeaderView(0);
         headerUser = header.findViewById(R.id.header_user);
         headerStatus = header.findViewById(R.id.header_sync_status);
         headerProfileImage = header.findViewById(R.id.header_profile_image);
+        syncButton = header.findViewById(R.id.nav_sync_button);
         String photo = authRepository.getSessionManager().getProfileImage();
         if (!photo.isEmpty()) {
             com.bumptech.glide.Glide.with(this)
@@ -96,14 +100,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             name = getString(R.string.default_username);
         }
         headerUser.setText(name);
+        if (syncButton != null) {
+            syncButton.setOnClickListener(v -> syncManager.scheduleSync());
+        }
         syncManager.getStatus().observe(this, status -> {
-            String text = switch (status) {
-                case OFFLINE -> getString(R.string.sync_offline);
-                case CONNECTED -> getString(R.string.sync_connected);
-                case SYNCING -> getString(R.string.sync_syncing);
-                case COMPLETE -> getString(R.string.sync_complete);
-                case ERROR -> getString(R.string.sync_error);
-            };
+            String text;
+            boolean pending = repository.hasPendingOperations();
+            if (status == SyncStatus.SYNCING) {
+                text = getString(R.string.sync_syncing);
+            } else if (status == SyncStatus.ERROR) {
+                text = getString(R.string.sync_error);
+            } else if (status == SyncStatus.OFFLINE) {
+                text = getString(R.string.sync_offline);
+            } else if (status == SyncStatus.CONNECTED) {
+                text = pending ? getString(R.string.sync_pending)
+                        : getString(R.string.sync_connected);
+            } else { // COMPLETE
+                text = pending ? getString(R.string.sync_pending)
+                        : getString(R.string.sync_complete);
+            }
             headerStatus.setText(text);
         });
 
