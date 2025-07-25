@@ -318,7 +318,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
             android.net.Uri uri = data.getData();
-            java.io.File file = new java.io.File(getPathFromUri(uri));
+            java.io.File file = createFileFromUri(uri);
+            if (file == null) return;
             authRepository.uploadProfileImage(file, new retrofit2.Callback<com.zihowl.thecalendar.data.model.ImageUploadResponse>() {
                 @Override
                 public void onResponse(retrofit2.Call<com.zihowl.thecalendar.data.model.ImageUploadResponse> call, retrofit2.Response<com.zihowl.thecalendar.data.model.ImageUploadResponse> response) {
@@ -337,16 +338,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private String getPathFromUri(android.net.Uri uri) {
-        String[] projection = { android.provider.MediaStore.Images.Media.DATA };
-        android.database.Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
-        if (cursor != null) {
-            int column_index = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String path = cursor.getString(column_index);
-            cursor.close();
-            return path;
+
+    private java.io.File createFileFromUri(android.net.Uri uri) {
+        try {
+            java.io.InputStream input = getContentResolver().openInputStream(uri);
+            java.io.File temp = java.io.File.createTempFile("profile", ".jpg", getCacheDir());
+            java.io.OutputStream out = new java.io.FileOutputStream(temp);
+            byte[] buffer = new byte[4096];
+            int read;
+            while (input != null && (read = input.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            if (input != null) input.close();
+            out.close();
+            return temp;
+        } catch (java.io.IOException e) {
+            return null;
         }
-        return null;
     }
 }

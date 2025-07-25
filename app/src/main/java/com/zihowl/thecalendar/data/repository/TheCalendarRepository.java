@@ -90,6 +90,14 @@ public class TheCalendarRepository {
         return INSTANCE;
     }
 
+    /**
+     * Returns true if a subject with the given name already exists for the current user.
+     */
+    public boolean subjectExists(String name) {
+        String owner = sessionManager.getUsername();
+        return localDataSource.subjectExists(owner, name);
+    }
+
 
 
     // --- MÉTODOS GET CON SINCRONIZACIÓN ---
