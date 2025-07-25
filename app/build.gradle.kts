@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     id("realm-android")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -50,6 +51,11 @@ dependencies {
 
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
+
+    implementation("androidx.core:core:1.12.0")
+
+    // Firebase Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging:23.4.0")
 
     implementation("io.realm:realm-android-library:10.19.0")
 
