@@ -35,6 +35,27 @@ public class TheCalendarRepository {
     private final Gson gson = new Gson();
     private static volatile TheCalendarRepository INSTANCE;
 
+    /**
+     * Ensure tasks and notes reference the correct subject ID.
+     */
+    private void updateSubjectReferences(Subject subject) {
+        String owner = sessionManager.getUsername();
+        for (Task t : localDataSource.getAllTasksForOwner(owner)) {
+            if (subject.getName().equals(t.getSubjectName()) &&
+                    (t.getSubjectId() == null || t.getSubjectId() != subject.getId())) {
+                t.setSubjectId(subject.getId());
+                localDataSource.saveTask(t);
+            }
+        }
+        for (Note n : localDataSource.getAllNotesForOwner(owner)) {
+            if (subject.getName().equals(n.getSubjectName()) &&
+                    (n.getSubjectId() == null || n.getSubjectId() != subject.getId())) {
+                n.setSubjectId(subject.getId());
+                localDataSource.saveNote(n);
+            }
+        }
+    }
+
     private boolean isLoggedIn() {
         String token = sessionManager.getToken();
         return token != null && !token.isEmpty();
@@ -123,6 +144,7 @@ public class TheCalendarRepository {
                             s.setDeleted(false);
                             remoteIds.add(s.getId());
                             localDataSource.saveSubject(s);
+                            updateSubjectReferences(s);
                         }
                         for (Subject local : localDataSource.getAllSubjectsForOwner(owner)) {
                             if (!remoteIds.contains(local.getId())) {
@@ -232,6 +254,7 @@ public class TheCalendarRepository {
         subject.setOwner(sessionManager.getUsername());
         subject.setDeleted(false);
         localDataSource.saveSubject(subject); // Respuesta rápida en UI
+        updateSubjectReferences(subject);
         long opId = queueOperation("subject", "CREATE", subject);
         String q = "mutation($nombre:String!,$profesor:String,$horario:String){ crearMateria(nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
         Map<String,Object> vars = new java.util.HashMap<>();
@@ -251,6 +274,7 @@ public class TheCalendarRepository {
                             if (newId != null) {
                                 subject.setId(newId.intValue());
                                 localDataSource.saveSubject(subject);
+                                updateSubjectReferences(subject);
                             }
                         } catch (Exception e) {
                             Log.e("Repo", "Error parsing create subject response", e);
@@ -275,7 +299,20 @@ public class TheCalendarRepository {
     public void updateSubject(Subject subject) {
         subject.setOwner(sessionManager.getUsername());
         subject.setDeleted(false);
+        Subject original = localDataSource.getSubjectById(subject.getId());
+        String oldName = original != null ? original.getName() : null;
         localDataSource.saveSubject(subject);
+        if (oldName != null && !oldName.equals(subject.getName())) {
+            for (Task t : localDataSource.getTasksForSubject(oldName)) {
+                t.setSubjectName(subject.getName());
+                localDataSource.saveTask(t);
+            }
+            for (Note n : localDataSource.getNotesForSubject(oldName)) {
+                n.setSubjectName(subject.getName());
+                localDataSource.saveNote(n);
+            }
+        }
+        updateSubjectReferences(subject);
         long opId = queueOperation("subject", "UPDATE", subject);
         String q = "mutation($id:ID!,$nombre:String,$profesor:String,$horario:String){ actualizarMateria(id:$id, nombre:$nombre, profesor:$profesor, horario:$horario){ materia{ id: dbId nombre profesor horario } } }";
         Map<String,Object> vars = new HashMap<>();
@@ -765,6 +802,7 @@ public class TheCalendarRepository {
                 s.setDeleted(false);
                 remoteIds.add(s.getId());
                 localDataSource.saveSubject(s);
+                updateSubjectReferences(s);
             }
             for (Subject local : localDataSource.getAllSubjectsForOwner(owner)) {
                 if (!remoteIds.contains(local.getId())) {
