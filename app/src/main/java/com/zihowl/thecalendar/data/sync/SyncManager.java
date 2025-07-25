@@ -29,6 +29,7 @@ public class SyncManager {
     }
 
     public void scheduleSync() {
+        updateStatus(SyncStatus.SYNCING);
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(SyncWorker.class).build();
         WorkManager.getInstance(context).enqueueUniqueWork("sync", ExistingWorkPolicy.APPEND_OR_REPLACE, request);
     }

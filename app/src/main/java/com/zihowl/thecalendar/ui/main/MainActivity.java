@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         headerUser = header.findViewById(R.id.header_user);
         headerStatus = header.findViewById(R.id.header_sync_status);
         headerProfileImage = header.findViewById(R.id.header_profile_image);
-        syncButton = navigationView.findViewById(R.id.nav_sync_button);
+        syncButton = header.findViewById(R.id.nav_sync_button);
         String photo = authRepository.getSessionManager().getProfileImage();
         if (!photo.isEmpty()) {
             com.bumptech.glide.Glide.with(this)
@@ -105,16 +105,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         syncManager.getStatus().observe(this, status -> {
             String text;
+            boolean pending = repository.hasPendingOperations();
             if (status == SyncStatus.SYNCING) {
                 text = getString(R.string.sync_syncing);
             } else if (status == SyncStatus.ERROR) {
                 text = getString(R.string.sync_error);
             } else if (status == SyncStatus.OFFLINE) {
                 text = getString(R.string.sync_offline);
-            } else if (repository.hasPendingOperations()) {
-                text = getString(R.string.sync_pending);
-            } else {
-                text = getString(R.string.sync_complete);
+            } else if (status == SyncStatus.CONNECTED) {
+                text = pending ? getString(R.string.sync_pending)
+                        : getString(R.string.sync_connected);
+            } else { // COMPLETE
+                text = pending ? getString(R.string.sync_pending)
+                        : getString(R.string.sync_complete);
             }
             headerStatus.setText(text);
         });
