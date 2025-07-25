@@ -649,8 +649,14 @@ def login_user():
     usuario = db.session.query(Usuario).filter_by(nombre_usuario=data.get('nombre_usuario')).first()
     if not usuario or not usuario.verificar_contrasena(data.get('contrasena')): return jsonify(
         {'message': 'Credenciales inválidas'}), 401
-token = jwt.encode({'id': usuario.id, 'exp': datetime.now() + timedelta(hours=24)},
-                   app.config['SECRET_KEY'], algorithm="HS256")
+token = jwt.encode(
+    {
+        'id': usuario.id,
+        'exp': datetime.now().astimezone() + timedelta(hours=24)
+    },
+    app.config['SECRET_KEY'],
+    algorithm="HS256"
+)
 return jsonify({'token': token})
 
 
