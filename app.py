@@ -150,9 +150,9 @@ def parse_schedule_string(schedule_str):
 def apply_migrations():
     add_column_if_missing('usuarios', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
-    add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
-    add_column_if_missing('materias', 'updated_at',
-                          'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+   add_column_if_missing('materias', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')␊
+    add_column_if_missing('materias', 'updated_at',␊
+                          'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')␊
     add_column_if_missing('tareas', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP')
     add_column_if_missing('tareas', 'updated_at',
                           'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
@@ -186,9 +186,9 @@ class HorarioType(SQLAlchemyObjectType):
     updated_at = graphene.DateTime()
 
 
-class MateriaType(SQLAlchemyObjectType):
-    class Meta: model = Materia; interfaces = (graphene.relay.Node,)
-
+class MateriaType(SQLAlchemyObjectType):␊
+    class Meta: model = Materia; interfaces = (graphene.relay.Node,)␊
+    
     db_id = graphene.Int(source='id')
     updated_at = graphene.DateTime()
     horario = graphene.String()
@@ -215,7 +215,7 @@ class MateriaType(SQLAlchemyObjectType):
             day = days.get(h.dia_semana, str(h.dia_semana))
             lines.append(f"{day} {h.hora_inicio.strftime('%H:%M')} - {h.hora_fin.strftime('%H:%M')}")
         return "\n".join(lines)
-
+    
     def resolve_tareas_count(self, info):
         return db.session.query(func.count(Tarea.id)).filter_by(id_materia=self.id, id_usuario=self.id_usuario, completada=False).scalar()
 
@@ -278,8 +278,8 @@ class CrearMateria(graphene.Mutation):
         nombre = graphene.String(required=True)
         profesor = graphene.String()
         horario = graphene.String()
-
-    materia = graphene.Field(lambda: MateriaType)
+        
+     materia = graphene.Field(lambda: MateriaType)
 
     @token_required
     def mutate(root, info, nombre, **kwargs):
@@ -321,7 +321,7 @@ class ActualizarMateria(graphene.Mutation):
             materia.profesor = kwargs['profesor']
         if 'horario' in kwargs:
             schedule = kwargs.pop('horario')
-            for h in materia.horarios:
+            for h in list(materia.horarios):
                 db.session.delete(h)
             for h in parse_schedule_string(schedule):
                 h.id_materia = materia.id
@@ -350,12 +350,12 @@ class EliminarMateria(graphene.Mutation):
             raise Exception("Materia no encontrada.")
 
         # Eliminación en cascada de tareas, notas y horarios asociados
-        for tarea in materia.tareas:
-            db.session.delete(tarea)
-        for nota in materia.notas:
-            db.session.delete(nota)
-        for horario in materia.horarios:
-            db.session.delete(horario)
+        for tarea in list(materia.tareas):
+            db.session.delete(tarea)␊
+        for nota in list(materia.notas):
+            db.session.delete(nota)␊
+        for horario in list(materia.horarios):
+            db.session.delete(horario)␊
 
         db.session.delete(materia)
         db.session.commit()
@@ -383,9 +383,9 @@ class DesvincularYEliminarMateria(graphene.Mutation):
 
         nombre_materia = materia.nombre
 
-        for tarea in materia.tareas:
+        for tarea in list(materia.tareas):
             tarea.id_materia = None
-        for nota in materia.notas:
+        for nota in list(materia.notas):
             nota.id_materia = None
 
         db.session.delete(materia)
