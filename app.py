@@ -9,7 +9,7 @@ from sqlalchemy import func, inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from graphql_relay import from_global_id
 
 # --- 1. CONFIGURACIÓN INICIAL ---
@@ -29,8 +29,8 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_usuario = db.Column(db.String(50), unique=True, nullable=False)
     contrasena_hash = db.Column(db.String(255), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_registro = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     materias = db.relationship('Materia', backref='usuario', cascade="all, delete-orphan")
 
     def __init__(self, n, c): self.nombre_usuario = n; self.contrasena_hash = generate_password_hash(c)
@@ -44,8 +44,8 @@ class Materia(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     profesor = db.Column(db.String(100))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     tareas = db.relationship('Tarea', backref='materia', lazy='subquery')
     notas = db.relationship('Nota', backref='materia', lazy='subquery')
     horarios = db.relationship(
@@ -62,8 +62,8 @@ class Tarea(db.Model):
     descripcion = db.Column(db.Text)
     fecha_entrega = db.Column(db.DateTime)
     completada = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class Nota(db.Model):
@@ -73,8 +73,8 @@ class Nota(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     titulo = db.Column(db.String(255), nullable=False)
     contenido = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 class Horario(db.Model):
@@ -84,8 +84,8 @@ class Horario(db.Model):
     dia_semana = db.Column(db.Integer, nullable=False)
     hora_inicio = db.Column(db.Time, nullable=False)
     hora_fin = db.Column(db.Time, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
 
 # --- 3. DECORADOR DE TOKEN Y UTILIDADES ---
@@ -643,7 +643,7 @@ def login_user():
     usuario = db.session.query(Usuario).filter_by(nombre_usuario=data.get('nombre_usuario')).first()
     if not usuario or not usuario.verificar_contrasena(data.get('contrasena')): return jsonify(
         {'message': 'Credenciales inválidas'}), 401
-    token = jwt.encode({'id': usuario.id, 'exp': datetime.now(timezone.utc) + timedelta(hours=24)},
+    token = jwt.encode({'id': usuario.id, 'exp': datetime.now() + timedelta(hours=24)},
                        app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({'token': token})
 
